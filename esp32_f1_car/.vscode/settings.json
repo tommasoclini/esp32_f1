@@ -20,7 +20,9 @@
         "esp_mac.h": "c",
         "esp_console.h": "c",
         "stdio.h": "c",
-        "esp_err.h": "c"
+        "esp_err.h": "c",
+        "app_console.h": "c",
+        "argtable3.h": "c"
     },
     "idf.port": "/dev/ttyUSB0"
 }
