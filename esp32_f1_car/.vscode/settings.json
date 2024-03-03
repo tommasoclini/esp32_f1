@@ -22,7 +22,9 @@
         "stdio.h": "c",
         "esp_err.h": "c",
         "app_console.h": "c",
-        "argtable3.h": "c"
+        "argtable3.h": "c",
+        "esp_types.h": "c",
+        "esp_system.h": "c"
     },
     "idf.port": "/dev/ttyUSB0"
 }
