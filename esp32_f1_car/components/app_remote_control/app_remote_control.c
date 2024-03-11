@@ -1,26 +1,25 @@
 #include <stdio.h>
-#include "app_remote_control.h"
+#include <app_remote_control.h>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
-#include "esp_log.h"
-#include "esp_system.h"
-#include "esp_wifi.h"
-#include <esp_err.h>
-
-#include "espnow.h"
-
-#include "driver/uart.h"
+#include <esp_log.h>
+#include <esp_check.h>
+#include <esp_wifi.h>
 
 #include <esp_mac.h>
 
-#define UART_BAUD_RATE 115200
-#define UART_PORT_NUM  0
-#define UART_TX_IO     UART_PIN_NO_CHANGE
-#define UART_RX_IO     UART_PIN_NO_CHANGE
+#include <espnow.h>
+#include <espnow_storage.h>
+#include <espnow_ctrl.h>
+
+#include <iot_button.h>
 
 static const char *TAG = "remote control";
+
+#define BIND_UNBIND_RSSI -55
+#define BIND_WAIT_MS 3000
 
 extern uint8_t controller_mac[6];
 
@@ -37,37 +36,93 @@ static void app_wifi_init()
     ESP_ERROR_CHECK(esp_wifi_start());
 }
 
-static esp_err_t app_uart_write_handle(uint8_t *src_addr, void *data,
-                                       size_t size, wifi_pkt_rx_ctrl_t *rx_ctrl)
-{
-    ESP_PARAM_CHECK(src_addr);
-    ESP_PARAM_CHECK(data);
-    ESP_PARAM_CHECK(size);
-    ESP_PARAM_CHECK(rx_ctrl);
-
-    static uint32_t count = 0;
-
-    ESP_LOGI(TAG, "espnow_recv, <%" PRIu32 "> [" MACSTR "][%d][%d][%u]: %.*s",
-             count++, MAC2STR(src_addr), rx_ctrl->channel, rx_ctrl->rssi, size, size, (char *)data);
-
-    return ESP_OK;
+static bool ctrl_bind_cb(espnow_attribute_t init_attr, uint8_t mac[6], int8_t rssi){
+    ESP_LOGI(TAG, "Bind init attr: %d, mac: " MACSTR ", rssi: %d", init_attr, MAC2STR(mac), rssi);
+    return rssi >= BIND_UNBIND_RSSI;
 }
 
-esp_err_t initialize_remote_control(void){
+static void app_bind(bool bind){
+    espnow_ctrl_responder_bind(BIND_WAIT_MS, BIND_UNBIND_RSSI, ctrl_bind_cb);
+
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    espnow_ctrl_initiator_bind(ESPNOW_ATTRIBUTE_BASE, bind);
+}
+
+static void button_double_click_cb(void *button_handle, void *usr_data)
+{
+    ESP_LOGI(TAG, "BUTTON_DOUBLE_CLICK");
+
+    app_bind(true);
+}
+
+static void button_long_press_cb(void *button_handle, void *usr_data)
+{
+    ESP_LOGI(TAG, "BUTTON_LONG_PRESS_CLICK");
+
+    app_bind(false);
+}
+
+static void button_single_click_cb(void *button_handle, void *usr_data)
+{
+    ESP_LOGI(TAG, "BUTTON_SINGLE_CLICK");
+
+    espnow_ctrl_initiator_send(ESPNOW_ATTRIBUTE_BASE, ESPNOW_ATTRIBUTE_BASE, esp_log_timestamp());
+}
+
+static void button_multiple_click_cb(void *button_handle, void *usr_data)
+{
+    ESP_LOGI(TAG, "BUTTON_MULTIPLE_CLICK");
+
+    espnow_ctrl_responder_clear_bindlist();
+}
+
+static void ctrl_data_cb(espnow_attribute_t init_attr, espnow_attribute_t resp_attr, uint32_t resp_val)
+{
+    ESP_LOGI(TAG, "Init attr: %d, Resp attr: %d, Val: %lu", init_attr, resp_attr, resp_val);
+
+    switch (resp_attr)
+    {
+    case ESPNOW_ATTRIBUTE_F1_CONTROL:
+        ESP_LOGI(TAG, "Got control info");
+        break;
+
+    case ESPNOW_ATTRIBUTE_F1_LIMITER:
+        ESP_LOGI(TAG, "Got limiter command");
+        break;
+    default:
+        break;
+    }
+}
+
+void initialize_remote_control(void){
+    espnow_storage_init();
+
     app_wifi_init();
 
     espnow_config_t espnow_config = ESPNOW_INIT_CONFIG_DEFAULT();
+
     espnow_init(&espnow_config);
 
-    esp_now_peer_info_t peer_info = {
-        .ifidx = WIFI_IF_STA
+    button_config_t button_conf = {
+        .type = BUTTON_TYPE_GPIO,
+        .gpio_button_config = {
+            .gpio_num = GPIO_NUM_9,
+            .active_level = 0
+        }
     };
 
-    memcpy(&peer_info.peer_addr, controller_mac, sizeof(espnow_addr_t));    
+    button_handle_t button = iot_button_create(&button_conf);
+    iot_button_register_cb(button, BUTTON_DOUBLE_CLICK, button_double_click_cb, NULL);
+    iot_button_register_cb(button, BUTTON_LONG_PRESS_UP, button_long_press_cb, NULL);
+    iot_button_register_cb(button, BUTTON_SINGLE_CLICK, button_single_click_cb, NULL);
 
-    esp_now_add_peer(&peer_info);
+    button_event_config_t button_event = {
+        .event = BUTTON_MULTIPLE_CLICK,
+        .event_data.multiple_clicks.clicks = 3
+    };
 
-    espnow_set_config_for_data_type(ESPNOW_DATA_TYPE_DATA, true, app_uart_write_handle);
+    iot_button_register_event_cb(button, button_event, button_multiple_click_cb, NULL);
 
-    return ESP_OK;
+    espnow_ctrl_responder_data(ctrl_data_cb);
 }
