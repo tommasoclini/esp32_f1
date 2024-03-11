@@ -81,17 +81,12 @@ static void ctrl_data_cb(espnow_attribute_t init_attr, espnow_attribute_t resp_a
 {
     ESP_LOGI(TAG, "Init attr: %d, Resp attr: %d, Val: %lu", init_attr, resp_attr, resp_val);
 
-    switch (resp_attr)
+    if ((espnow_f1_attribute_t)resp_attr == ESPNOW_ATTRIBUTE_F1_CONTROL)
     {
-    case ESPNOW_ATTRIBUTE_F1_CONTROL:
         ESP_LOGI(TAG, "Got control info");
-        break;
-
-    case ESPNOW_ATTRIBUTE_F1_LIMITER:
+    } else if ((espnow_f1_attribute_t)resp_attr == ESPNOW_ATTRIBUTE_F1_LIMITER)
+    {
         ESP_LOGI(TAG, "Got limiter command");
-        break;
-    default:
-        break;
     }
 }
 
