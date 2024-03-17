@@ -1,8 +1,9 @@
 #pragma once
 
-typedef enum {
-    ESPNOW_ATTRIBUTE_F1_CONTROL =           0x0400,
-    ESPNOW_ATTRIBUTE_F1_LIMITER =           0x0401,
-} espnow_f1_attribute_t;
+#define ESPNOW_ATTRIBUTE_F1_BASE        0x4000
+
+#define ESPNOW_ATTRIBUTE_F1_TEST        (ESPNOW_ATTRIBUTE_F1_BASE + 0x01)
+#define ESPNOW_ATTRIBUTE_F1_CONTROL     (ESPNOW_ATTRIBUTE_F1_BASE + 0x02)
+#define ESPNOW_ATTRIBUTE_F1_LIMITER     (ESPNOW_ATTRIBUTE_F1_BASE + 0x03)
 
 void initialize_remote_control(void);

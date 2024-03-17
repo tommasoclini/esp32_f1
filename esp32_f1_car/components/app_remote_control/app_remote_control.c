@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <app_remote_control.h>
 
 #include <freertos/FreeRTOS.h>
@@ -15,14 +14,17 @@
 #include <espnow_ctrl.h>
 
 #include <iot_button.h>
+#include <iot_servo.h>
 
 static const char *TAG = "remote control";
 
 #define BIND_UNBIND_RSSI -55
 #define BIND_WAIT_MS 3000
 
-extern uint8_t controller_mac[6];
+#define STEERING_SERVO_PIN          GPIO_NUM_0
+#define ESC_MOTOR_SERVO_PIN         GPIO_NUM_1
 
+/* espnow */
 static void app_wifi_init()
 {
     esp_event_loop_create_default();
@@ -41,14 +43,28 @@ static bool ctrl_bind_cb(espnow_attribute_t init_attr, uint8_t mac[6], int8_t rs
     return rssi >= BIND_UNBIND_RSSI;
 }
 
+static void ctrl_data_cb(espnow_attribute_t init_attr, espnow_attribute_t resp_attr, uint32_t resp_val)
+{
+    ESP_LOGI(TAG, "Init attr: %d, Resp attr: 0x%x, Val: %lu", init_attr, resp_attr, resp_val);
+
+    if (resp_attr == ESPNOW_ATTRIBUTE_F1_CONTROL)
+    {
+        ESP_LOGI(TAG, "Got control info");
+    } else if (resp_attr == ESPNOW_ATTRIBUTE_F1_LIMITER)
+    {
+        ESP_LOGI(TAG, "Got limiter command");
+    }
+}
+
 static void app_bind(bool bind){
     espnow_ctrl_responder_bind(BIND_WAIT_MS, BIND_UNBIND_RSSI, ctrl_bind_cb);
 
     vTaskDelay(pdMS_TO_TICKS(100));
 
-    espnow_ctrl_initiator_bind(ESPNOW_ATTRIBUTE_BASE, bind);
+    espnow_ctrl_initiator_bind(ESPNOW_ATTRIBUTE_F1_BASE, bind);
 }
 
+/* button */
 static void button_double_click_cb(void *button_handle, void *usr_data)
 {
     ESP_LOGI(TAG, "BUTTON_DOUBLE_CLICK");
@@ -67,7 +83,7 @@ static void button_single_click_cb(void *button_handle, void *usr_data)
 {
     ESP_LOGI(TAG, "BUTTON_SINGLE_CLICK");
 
-    espnow_ctrl_initiator_send(ESPNOW_ATTRIBUTE_BASE, ESPNOW_ATTRIBUTE_BASE, esp_log_timestamp());
+    espnow_ctrl_initiator_send(ESPNOW_ATTRIBUTE_F1_BASE, ESPNOW_ATTRIBUTE_F1_TEST, esp_log_timestamp());
 }
 
 static void button_multiple_click_cb(void *button_handle, void *usr_data)
@@ -77,20 +93,49 @@ static void button_multiple_click_cb(void *button_handle, void *usr_data)
     espnow_ctrl_responder_clear_bindlist();
 }
 
-static void ctrl_data_cb(espnow_attribute_t init_attr, espnow_attribute_t resp_attr, uint32_t resp_val)
-{
-    ESP_LOGI(TAG, "Init attr: %d, Resp attr: %d, Val: %lu", init_attr, resp_attr, resp_val);
+/* steering servo */
+servo_config_t steering_servo_config = {
+    .max_angle = 0xffff,
+    .min_width_us = 500,
+    .max_width_us = 2500,
+    .freq = 50,
+    .timer_number = LEDC_TIMER_0,
+    .channels = {
+        .servo_pin = {
+            STEERING_SERVO_PIN,
+        },
+        .ch = {
+            LEDC_CHANNEL_0,
+        },
+    },
+    .channel_number = 1,
+};
 
-    if ((espnow_f1_attribute_t)resp_attr == ESPNOW_ATTRIBUTE_F1_CONTROL)
-    {
-        ESP_LOGI(TAG, "Got control info");
-    } else if ((espnow_f1_attribute_t)resp_attr == ESPNOW_ATTRIBUTE_F1_LIMITER)
-    {
-        ESP_LOGI(TAG, "Got limiter command");
-    }
-}
+/* esc motor servo */
+servo_config_t esc_motor_servo_config = {
+    .max_angle = 0xffff,
+    .min_width_us = 1000,
+    .max_width_us = 2000,
+    .freq = 50,
+    .timer_number = LEDC_TIMER_0,
+    .channels = {
+        .servo_pin = {
+            ESC_MOTOR_SERVO_PIN,
+        },
+        .ch = {
+            LEDC_CHANNEL_1,
+        },
+    },
+    .channel_number = 1,
+};
 
 void initialize_remote_control(void){
+    ESP_ERROR_CHECK(iot_servo_init(LEDC_LOW_SPEED_MODE, &steering_servo_config));
+    ESP_ERROR_CHECK(iot_servo_init(LEDC_LOW_SPEED_MODE, &esc_motor_servo_config));
+
+    iot_servo_write_angle(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, (float)0xffff);
+    iot_servo_write_angle(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, (float)0xffff);
+
     espnow_storage_init();
 
     app_wifi_init();
