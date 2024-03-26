@@ -6,4 +6,4 @@
 #define ESPNOW_ATTRIBUTE_F1_CONTROL     (ESPNOW_ATTRIBUTE_F1_BASE + 0x02)
 #define ESPNOW_ATTRIBUTE_F1_LIMITER     (ESPNOW_ATTRIBUTE_F1_BASE + 0x03)
 
-void initialize_remote_control(void);
+esp_err_t initialize_remote_control(void);

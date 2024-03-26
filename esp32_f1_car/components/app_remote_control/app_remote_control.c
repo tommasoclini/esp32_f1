@@ -5,8 +5,8 @@
 
 #include <esp_log.h>
 #include <esp_check.h>
-#include <esp_wifi.h>
 
+#include <esp_wifi.h>
 #include <esp_mac.h>
 
 #include <espnow.h>
@@ -14,15 +14,11 @@
 #include <espnow_ctrl.h>
 
 #include <iot_button.h>
-#include <iot_servo.h>
 
 static const char *TAG = "remote control";
 
 #define BIND_UNBIND_RSSI -55
 #define BIND_WAIT_MS 3000
-
-#define STEERING_SERVO_PIN          GPIO_NUM_0
-#define ESC_MOTOR_SERVO_PIN         GPIO_NUM_1
 
 /* espnow */
 static void app_wifi_init()
@@ -53,7 +49,11 @@ static void ctrl_data_cb(espnow_attribute_t init_attr, espnow_attribute_t resp_a
     } else if (resp_attr == ESPNOW_ATTRIBUTE_F1_LIMITER)
     {
         ESP_LOGI(TAG, "Got limiter command");
+    } else if (resp_attr == ESPNOW_ATTRIBUTE_F1_TEST)
+    {
+        ESP_LOGI(TAG, "Got test message");
     }
+    
 }
 
 static void app_bind(bool bind){
@@ -93,57 +93,7 @@ static void button_multiple_click_cb(void *button_handle, void *usr_data)
     espnow_ctrl_responder_clear_bindlist();
 }
 
-/* steering servo */
-servo_config_t steering_servo_config = {
-    .max_angle = 0xffff,
-    .min_width_us = 500,
-    .max_width_us = 2500,
-    .freq = 50,
-    .timer_number = LEDC_TIMER_0,
-    .channels = {
-        .servo_pin = {
-            STEERING_SERVO_PIN,
-        },
-        .ch = {
-            LEDC_CHANNEL_0,
-        },
-    },
-    .channel_number = 1,
-};
-
-/* esc motor servo */
-servo_config_t esc_motor_servo_config = {
-    .max_angle = 0xffff,
-    .min_width_us = 1000,
-    .max_width_us = 2000,
-    .freq = 50,
-    .timer_number = LEDC_TIMER_0,
-    .channels = {
-        .servo_pin = {
-            ESC_MOTOR_SERVO_PIN,
-        },
-        .ch = {
-            LEDC_CHANNEL_1,
-        },
-    },
-    .channel_number = 1,
-};
-
-void initialize_remote_control(void){
-    ESP_ERROR_CHECK(iot_servo_init(LEDC_LOW_SPEED_MODE, &steering_servo_config));
-    ESP_ERROR_CHECK(iot_servo_init(LEDC_LOW_SPEED_MODE, &esc_motor_servo_config));
-
-    iot_servo_write_angle(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, (float)0xffff);
-    iot_servo_write_angle(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, (float)0xffff);
-
-    espnow_storage_init();
-
-    app_wifi_init();
-
-    espnow_config_t espnow_config = ESPNOW_INIT_CONFIG_DEFAULT();
-
-    espnow_init(&espnow_config);
-
+static void init_button(void){
     button_config_t button_conf = {
         .type = BUTTON_TYPE_GPIO,
         .gpio_button_config = {
@@ -163,6 +113,17 @@ void initialize_remote_control(void){
     };
 
     iot_button_register_event_cb(button, button_event, button_multiple_click_cb, NULL);
+}
 
+/* initialization */
+esp_err_t initialize_remote_control(void){
+    espnow_storage_init();
+
+    app_wifi_init();
+
+    espnow_config_t espnow_config = ESPNOW_INIT_CONFIG_DEFAULT();
+    espnow_init(&espnow_config);
     espnow_ctrl_responder_data(ctrl_data_cb);
+
+    init_button();
 }
