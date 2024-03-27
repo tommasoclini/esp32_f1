@@ -1,3 +1,5 @@
+#pragma once
+
 #define SERVOS_LEDC_TIMER_FREQ                  (50)
 #define SERVOS_LEDC_TIMER                       LEDC_TIMER_0
 #define SERVOS_LEDC_TIMER_BIT                   LEDC_TIMER_14_BIT

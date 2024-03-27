@@ -2,7 +2,7 @@
 #include <esp_err.h>
 
 /**
- * @brief steering and esc servos
+ * @brief Init steering and esc servos
 */
 esp_err_t init_servos(void);
 

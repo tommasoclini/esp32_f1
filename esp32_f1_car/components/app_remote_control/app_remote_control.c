@@ -39,23 +39,6 @@ static bool ctrl_bind_cb(espnow_attribute_t init_attr, uint8_t mac[6], int8_t rs
     return rssi >= BIND_UNBIND_RSSI;
 }
 
-static void ctrl_data_cb(espnow_attribute_t init_attr, espnow_attribute_t resp_attr, uint32_t resp_val)
-{
-    ESP_LOGI(TAG, "Init attr: %d, Resp attr: 0x%x, Val: %lu", init_attr, resp_attr, resp_val);
-
-    if (resp_attr == ESPNOW_ATTRIBUTE_F1_CONTROL)
-    {
-        ESP_LOGI(TAG, "Got control info");
-    } else if (resp_attr == ESPNOW_ATTRIBUTE_F1_LIMITER)
-    {
-        ESP_LOGI(TAG, "Got limiter command");
-    } else if (resp_attr == ESPNOW_ATTRIBUTE_F1_TEST)
-    {
-        ESP_LOGI(TAG, "Got test message");
-    }
-    
-}
-
 static void app_bind(bool bind){
     espnow_ctrl_responder_bind(BIND_WAIT_MS, BIND_UNBIND_RSSI, ctrl_bind_cb);
 
@@ -91,6 +74,7 @@ static void button_multiple_click_cb(void *button_handle, void *usr_data)
     ESP_LOGI(TAG, "BUTTON_MULTIPLE_CLICK");
 
     espnow_ctrl_responder_clear_bindlist();
+    ESP_LOGI(TAG, "Cleared remote control(espnow) bindlist");
 }
 
 static void init_button(void){
@@ -117,13 +101,22 @@ static void init_button(void){
 
 /* initialization */
 esp_err_t initialize_remote_control(void){
-    espnow_storage_init();
+    ESP_RETURN_ON_ERROR(espnow_storage_init(), TAG, "Failed to init espnow storage");
 
     app_wifi_init();
 
     espnow_config_t espnow_config = ESPNOW_INIT_CONFIG_DEFAULT();
-    espnow_init(&espnow_config);
-    espnow_ctrl_responder_data(ctrl_data_cb);
+    ESP_RETURN_ON_ERROR(espnow_init(&espnow_config), TAG, "Failed to init espnow");
 
     init_button();
+
+    return ESP_OK;
+}
+
+esp_err_t remote_control_register_cb(espnow_ctrl_data_cb_t data_cb){
+    return espnow_ctrl_responder_data(data_cb);
+}
+
+esp_err_t remote_control_send_data(espnow_attribute_t resp_attr, uint32_t val){
+    return espnow_ctrl_initiator_send(ESPNOW_ATTRIBUTE_F1_BASE, resp_attr, val);
 }
