@@ -1,14 +1,9 @@
-#include <stdio.h>
-#include <string.h>
-
 #include <app_console.h>
 #include <app_remote_control.h>
 #include <app_car_servos.h>
 
 #include <nvs.h>
 #include <nvs_flash.h>
-
-#include <esp_types.h>
 
 #include <esp_log.h>
 
