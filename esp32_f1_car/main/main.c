@@ -19,19 +19,40 @@ static const char *TAG = "main";
     ESP_ERROR_CHECK(err);
 }*/
 
+typedef struct __packed {
+    uint16_t throttle;
+    uint16_t steering;
+} control_data_t;
+
+static bool limiter_active;
+static uint16_t limiter_servo_val = 0x7fff + 0x2000;
+
+#define THROTTLE_TO_SERVO(th) (limiter_active ? MIN(th, limiter_servo_val) : th)
+
 static void app_remote_control_data_cb(espnow_attribute_t init_attr, espnow_attribute_t resp_attr, uint32_t resp_val)
 {
     ESP_LOGI(TAG, "Init attr: %d, Resp attr: 0x%x, Val: %lu", init_attr, resp_attr, resp_val);
 
-    if (resp_attr == ESPNOW_ATTRIBUTE_F1_CONTROL)
+    if (init_attr == ESPNOW_ATTRIBUTE_F1_BASE)
     {
-        ESP_LOGI(TAG, "Got control info");
-    } else if (resp_attr == ESPNOW_ATTRIBUTE_F1_LIMITER)
-    {
-        ESP_LOGI(TAG, "Got limiter command");
-    } else if (resp_attr == ESPNOW_ATTRIBUTE_F1_TEST)
-    {
-        ESP_LOGI(TAG, "Got test message");
+        if (resp_attr == ESPNOW_ATTRIBUTE_F1_CONTROL)
+        {
+            ESP_LOGI(TAG, "Got control info");
+            control_data_t control_data = *(control_data_t*)&resp_val;
+
+            ESP_LOGI(TAG, "Throttle: %d -> esc motor servo: %d, Steering: %d",
+                            control_data.throttle,
+                            THROTTLE_TO_SERVO(control_data.throttle),
+                            control_data.steering);
+        } else if (resp_attr == ESPNOW_ATTRIBUTE_F1_LIMITER)
+        {
+            ESP_LOGI(TAG, "Got limiter command");
+            limiter_active = (resp_val != 0);
+            ESP_LOGI(TAG, "Limiter is %s", limiter_active ? "active" : "not active");
+        } else if (resp_attr == ESPNOW_ATTRIBUTE_F1_TEST)
+        {
+            ESP_LOGI(TAG, "Got test message");
+        }
     }
 }
 

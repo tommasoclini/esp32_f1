@@ -1,9 +1,9 @@
 #include <app_remote_control.h>
+#include <app_remote_control_conf.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include <esp_log.h>
 #include <esp_check.h>
 
 #include <esp_wifi.h>
@@ -20,7 +20,9 @@ static const char *TAG = "remote control";
 #define BIND_UNBIND_RSSI -55
 #define BIND_WAIT_MS 3000
 
-/* espnow */
+/**
+ * @brief init wifi
+*/
 static void app_wifi_init()
 {
     esp_event_loop_create_default();
@@ -34,11 +36,17 @@ static void app_wifi_init()
     ESP_ERROR_CHECK(esp_wifi_start());
 }
 
+/**
+ * @brief bind event app cb
+*/
 static bool ctrl_bind_cb(espnow_attribute_t init_attr, uint8_t mac[6], int8_t rssi){
     ESP_LOGI(TAG, "Bind init attr: %d, mac: " MACSTR ", rssi: %d", init_attr, MAC2STR(mac), rssi);
     return rssi >= BIND_UNBIND_RSSI;
 }
 
+/**
+ * @brief start bind/unbind operation
+*/
 static void app_bind(bool bind){
     espnow_ctrl_responder_bind(BIND_WAIT_MS, BIND_UNBIND_RSSI, ctrl_bind_cb);
 
@@ -62,13 +70,6 @@ static void button_long_press_cb(void *button_handle, void *usr_data)
     app_bind(false);
 }
 
-static void button_single_click_cb(void *button_handle, void *usr_data)
-{
-    ESP_LOGI(TAG, "BUTTON_SINGLE_CLICK");
-
-    espnow_ctrl_initiator_send(ESPNOW_ATTRIBUTE_F1_BASE, ESPNOW_ATTRIBUTE_F1_TEST, esp_log_timestamp());
-}
-
 static void button_multiple_click_cb(void *button_handle, void *usr_data)
 {
     ESP_LOGI(TAG, "BUTTON_MULTIPLE_CLICK");
@@ -77,11 +78,18 @@ static void button_multiple_click_cb(void *button_handle, void *usr_data)
     ESP_LOGI(TAG, "Cleared remote control(espnow) bindlist");
 }
 
+static void button_single_click_cb(void *button_handle, void *usr_data)
+{
+    ESP_LOGI(TAG, "BUTTON_SINGLE_CLICK");
+
+    espnow_ctrl_initiator_send(ESPNOW_ATTRIBUTE_F1_BASE, ESPNOW_ATTRIBUTE_F1_TEST, esp_log_timestamp());
+}
+
 static void init_button(void){
     button_config_t button_conf = {
         .type = BUTTON_TYPE_GPIO,
         .gpio_button_config = {
-            .gpio_num = GPIO_NUM_9,
+            .gpio_num = APP_REMOTE_CTRL_BTN_GPIO,
             .active_level = 0
         }
     };
