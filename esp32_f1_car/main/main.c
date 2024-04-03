@@ -40,10 +40,15 @@ static void app_remote_control_data_cb(espnow_attribute_t init_attr, espnow_attr
             ESP_LOGI(TAG, "Got control info");
             control_data_t control_data = *(control_data_t*)&resp_val;
 
+            uint16_t throttle_servo = THROTTLE_TO_SERVO(control_data.throttle);
+
             ESP_LOGI(TAG, "Throttle: %d -> esc motor servo: %d, Steering: %d",
                             control_data.throttle,
-                            THROTTLE_TO_SERVO(control_data.throttle),
+                            throttle_servo,
                             control_data.steering);
+
+            esc_motor_servo_write_u16(throttle_servo);
+            steering_servo_write_u16(control_data.steering);
         } else if (resp_attr == ESPNOW_ATTRIBUTE_F1_LIMITER)
         {
             ESP_LOGI(TAG, "Got limiter command");

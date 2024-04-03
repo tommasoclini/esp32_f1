@@ -81,7 +81,8 @@
     "variant": "cpp",
     "iot_button.h": "c",
     "espnow.h": "c",
-    "esp_check.h": "c"
+    "esp_check.h": "c",
+    "espnow_ctrl.h": "c"
   },
   "idf.flashType": "UART",
   "idf.port": "/dev/ttyUSB0"
