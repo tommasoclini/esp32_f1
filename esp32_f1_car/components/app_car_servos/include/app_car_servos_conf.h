@@ -8,8 +8,13 @@
 #define STEERING_SERVO_LEDC_CHAN                LEDC_CHANNEL_0
 #define ESC_MOTOR_SERVO_LEDC_CHAN               LEDC_CHANNEL_1
 
+#if CONFIG_IDF_TARGET_ESP32C3
+#define STEERING_SERVO_PIN                      GPIO_NUM_0
+#define ESC_MOTOR_SERVO_PIN                     GPIO_NUM_1
+#elif CONFIG_IDF_TARGET_ESP32
 #define STEERING_SERVO_PIN                      GPIO_NUM_27
 #define ESC_MOTOR_SERVO_PIN                     GPIO_NUM_26
+#endif
 
 /**
  * 0 - 65535
