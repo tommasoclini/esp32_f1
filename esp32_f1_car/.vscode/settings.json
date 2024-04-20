@@ -1,8 +1,8 @@
 {
   "C_Cpp.intelliSenseEngine": "default",
-  "idf.adapterTargetName": "esp32c3",
+  "idf.adapterTargetName": "esp32",
   "idf.openOcdConfigs": [
-    "board/esp32c3-bridge.cfg"
+    "board/esp32-bridge.cfg"
   ],
   "files.associations": {
     "*.common": "makefile",
@@ -82,7 +82,8 @@
     "iot_button.h": "c",
     "espnow.h": "c",
     "esp_check.h": "c",
-    "espnow_ctrl.h": "c"
+    "espnow_ctrl.h": "c",
+    "unistd.h": "c"
   },
   "idf.flashType": "UART",
   "idf.port": "/dev/ttyUSB0"

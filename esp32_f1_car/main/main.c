@@ -7,6 +7,9 @@
 
 #include <esp_log.h>
 
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 static const char *TAG = "main";
 
 /*static void initialize_nvs(void)

@@ -8,8 +8,8 @@
 #define STEERING_SERVO_LEDC_CHAN                LEDC_CHANNEL_0
 #define ESC_MOTOR_SERVO_LEDC_CHAN               LEDC_CHANNEL_1
 
-#define STEERING_SERVO_PIN                      GPIO_NUM_0
-#define ESC_MOTOR_SERVO_PIN                     GPIO_NUM_1
+#define STEERING_SERVO_PIN                      GPIO_NUM_27
+#define ESC_MOTOR_SERVO_PIN                     GPIO_NUM_26
 
 /**
  * 0 - 65535
