@@ -61,6 +61,7 @@ static void button_double_click_cb(void *button_handle, void *usr_data)
     ESP_LOGI(TAG, "BUTTON_DOUBLE_CLICK");
 
     app_bind(true);
+    ESP_LOGI(TAG, "Doing bind operation");
 }
 
 static void button_long_press_cb(void *button_handle, void *usr_data)
@@ -68,6 +69,7 @@ static void button_long_press_cb(void *button_handle, void *usr_data)
     ESP_LOGI(TAG, "BUTTON_LONG_PRESS_CLICK");
 
     app_bind(false);
+    ESP_LOGI(TAG, "Doing unbind operation");
 }
 
 static void button_multiple_click_cb(void *button_handle, void *usr_data)
@@ -83,6 +85,7 @@ static void button_single_click_cb(void *button_handle, void *usr_data)
     ESP_LOGI(TAG, "BUTTON_SINGLE_CLICK");
 
     espnow_ctrl_initiator_send(ESPNOW_ATTRIBUTE_F1_BASE, ESPNOW_ATTRIBUTE_F1_TEST, esp_log_timestamp());
+    ESP_LOGI(TAG, "Sending test message");
 }
 
 static void init_button(void){
