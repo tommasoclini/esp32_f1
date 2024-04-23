@@ -25,13 +25,14 @@ esp_err_t init_servos(void){
         .channel = STEERING_SERVO_LEDC_CHAN,
         .intr_type = LEDC_INTR_DISABLE,
         .timer_sel = SERVOS_LEDC_TIMER,
-        .duty = 0,
+        .duty = STEERING_SERVO_UINT16_TO_DUTY(0x7fff),
         .hpoint = 0
     };
     ESP_RETURN_ON_ERROR(ledc_channel_config(&ledc_chan_conf), TAG, "Failed to config steering servo ledc channel");
 
     ledc_chan_conf.gpio_num = ESC_MOTOR_SERVO_PIN;
     ledc_chan_conf.channel = ESC_MOTOR_SERVO_LEDC_CHAN;
+    ledc_chan_conf.duty = ESC_MOTOR_SERVO_UINT16_TO_DUTY(0x7fff);
     ESP_RETURN_ON_ERROR(ledc_channel_config(&ledc_chan_conf), TAG, "Failed to config esc motor servo ledc channel");
     init = true;
     return ESP_OK;
