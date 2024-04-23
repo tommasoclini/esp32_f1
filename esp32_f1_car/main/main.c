@@ -7,6 +7,9 @@
 
 #include <esp_log.h>
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/timers.h>
+
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
@@ -21,6 +24,8 @@ static const char *TAG = "main";
     }
     ESP_ERROR_CHECK(err);
 }*/
+
+TimerHandle_t car_remote_control_tim;
 
 typedef struct __packed {
     uint16_t throttle;
@@ -38,10 +43,11 @@ static void app_remote_control_data_cb(espnow_attribute_t init_attr, espnow_attr
 
     if (init_attr == ESPNOW_ATTRIBUTE_F1_BASE)
     {
+        static control_data_t control_data;
         if (resp_attr == ESPNOW_ATTRIBUTE_F1_CONTROL)
         {
             ESP_LOGI(TAG, "Got control info");
-            control_data_t control_data = *(control_data_t*)&resp_val;
+            control_data = *(control_data_t*)&resp_val;
 
             uint16_t throttle_servo = THROTTLE_TO_SERVO(control_data.throttle);
 
@@ -52,16 +58,23 @@ static void app_remote_control_data_cb(espnow_attribute_t init_attr, espnow_attr
 
             esc_motor_servo_write_u16(throttle_servo);
             steering_servo_write_u16(control_data.steering);
+            xTimerStart(car_remote_control_tim, 0);
         } else if (resp_attr == ESPNOW_ATTRIBUTE_F1_LIMITER)
         {
             ESP_LOGI(TAG, "Got limiter command");
             limiter_active = (resp_val != 0);
             ESP_LOGI(TAG, "Limiter is %s", limiter_active ? "active" : "not active");
+            if (limiter_active) esc_motor_servo_write_u16(MIN(control_data.throttle, limiter_servo_val));
         } else if (resp_attr == ESPNOW_ATTRIBUTE_F1_TEST)
         {
             ESP_LOGI(TAG, "Got test message");
         }
     }
+}
+
+static void car_remote_control_tim_cb(TimerHandle_t tim){
+    esc_motor_servo_write_u16(0x7fff);
+    steering_servo_write_u16(0x7ffff);
 }
 
 void app_main(void)
@@ -73,6 +86,8 @@ void app_main(void)
     ESP_ERROR_CHECK(init_servos());
 
     ESP_ERROR_CHECK(start_console());
+
+    xTimerCreate("car remote control", pdMS_TO_TICKS(300), pdFALSE, NULL, car_remote_control_tim_cb);
 
     ESP_ERROR_CHECK(remote_control_register_cb(app_remote_control_data_cb));
 }
