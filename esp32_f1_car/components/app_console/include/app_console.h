@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <esp_err.h>
 
 /**
@@ -16,3 +20,7 @@ esp_err_t start_console(void);
  * @brief Stop and deinitialize uart console
 */
 esp_err_t stop_and_deinit_console(void);
+
+#ifdef __cplusplus
+}
+#endif

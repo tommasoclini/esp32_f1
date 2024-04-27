@@ -1,3 +1,3 @@
-idf_component_register(SRCS "main.c"
+idf_component_register(SRCS "main.cpp"
                     INCLUDE_DIRS "."
-                    REQUIRES app_console nvs_flash app_remote_control app_car_servos)
+                    REQUIRES app_console app_car_servos pwm_capture)
