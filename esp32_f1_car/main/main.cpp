@@ -35,10 +35,20 @@ extern "C" void app_main(void)
     cap.init();
     cap.start();
 
-    while (1)
+    TickType_t start = xTaskGetTickCount();
+
+    while (xTaskGetTickCount() < start + pdMS_TO_TICKS(5000))
     {
         pwm_capture::pwm_item_data_t pwm_item;
         cap.pwm_queue_receive(&pwm_item, portMAX_DELAY);
         ESP_LOGI(TAG, "GPIO(%d), Period(%llu), Duty(%llu), t0(%llu)", pwm_item.gpio, pwm_item.period, pwm_item.duty, pwm_item.t0);
+
+        uint16_t th = ( (float)MIN(MAX(pwm_item.duty - 1000, 0 ), 1000) ) * 65.535f;
+        ESP_LOGI(TAG, "esc motor servo(%u)", th);
+        esc_motor_servo_write_u16(th);
     }
+
+    cap.stop();
+    cap.deinit();
+    pwm_capture::deinit_for_all();
 }

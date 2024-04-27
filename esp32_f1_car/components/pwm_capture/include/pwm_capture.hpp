@@ -30,11 +30,14 @@ namespace pwm_capture
     class pwm_cap
     {
     private:
-        char *TAG_;
+        char *TAG_ = NULL;
         isr_arg_t isr_arg_;
 
-        gpio_num_t gpio_;
-        QueueHandle_t queue_;
+        gpio_num_t gpio_ = GPIO_NUM_NC;
+        QueueHandle_t queue_ = NULL;
+
+        bool initialized_ = false;
+        bool started_ = false;
     public:
         pwm_cap(gpio_num_t gpio, char *TAG);
         ~pwm_cap();

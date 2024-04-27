@@ -38,25 +38,27 @@ namespace pwm_capture
 
     pwm_cap::~pwm_cap()
     {
-        deinit();
     }
 
     esp_err_t init_for_all(){
+        if (all_init) return ESP_ERR_INVALID_STATE;
+
         ESP_RETURN_ON_ERROR(gpio_install_isr_service(0), TAG, "Failed to install gpio isr service");
         all_init = true;
         return ESP_OK;
     }
 
     esp_err_t deinit_for_all(){
+        if (!all_init) return ESP_ERR_INVALID_STATE;
+
         gpio_uninstall_isr_service();
         all_init = false;
         return ESP_OK;
     }
 
     esp_err_t pwm_cap::init(){
-        queue_ = xQueueCreate(10, sizeof(pwm_item_data_t));
-        isr_arg_.queue = queue_;
-
+        if (!all_init || initialized_) return ESP_ERR_INVALID_STATE;
+        
         gpio_config_t io_conf = {
             .pin_bit_mask = ((uint64_t)1 << (uint64_t)gpio_),
             .mode = GPIO_MODE_INPUT,
@@ -67,22 +69,34 @@ namespace pwm_capture
 
         ESP_RETURN_ON_ERROR(gpio_config(&io_conf), TAG_, "Failed to init gpio");
 
+        queue_ = xQueueCreate(10, sizeof(pwm_item_data_t));
+        isr_arg_.queue = queue_;
+
+        initialized_ = true;
+
         return ESP_OK;
     }
 
     esp_err_t pwm_cap::deinit(){
+        if (!initialized_) return ESP_ERR_INVALID_STATE;
+            
         vQueueDelete(queue_);
         ESP_RETURN_ON_ERROR(gpio_reset_pin(gpio_), TAG_, "Failed to reset gpio pin");
+        initialized_ = false;
         return ESP_OK;
     }
 
     esp_err_t pwm_cap::start(){
+        if (!initialized_ || started_) return ESP_ERR_INVALID_STATE;
         ESP_RETURN_ON_ERROR(gpio_isr_handler_add(gpio_, gpio_isr_handler, (void*)&isr_arg_), TAG_, "Failed to add gpio isr handler");
+        started_ = true;
         return ESP_OK;
     }
 
     esp_err_t pwm_cap::stop(){
+        if (!initialized_ || !started_) return ESP_ERR_INVALID_STATE;
         ESP_RETURN_ON_ERROR(gpio_isr_handler_remove(gpio_), TAG_, "Failed to remove gpio isr handler");
+        started_ = false;
         return ESP_OK;
     }
 
@@ -91,6 +105,7 @@ namespace pwm_capture
     }
 
     BaseType_t pwm_cap::pwm_queue_receive(pwm_item_data_t *item, TickType_t xTicksToWait ){
+        if (!initialized_) return ESP_ERR_INVALID_STATE;
         return xQueueReceive(queue_, (void*)item, xTicksToWait);
     }
 } // namespace pwm_capture
