@@ -50,7 +50,7 @@ extern "C" void app_main(void)
 
     gpio_num_t th_gpio = th_cap.get_gpio();
     gpio_num_t ch3_gpio = ch3_cap.get_gpio();
-    //gpio_num_t ch4_gpio = ch4_cap.get_gpio();
+    // gpio_num_t ch4_gpio = ch4_cap.get_gpio();
 
     while (1)
     {
@@ -64,7 +64,7 @@ extern "C" void app_main(void)
         {
             th = std::min(th, limiter_servo_val);
         }
-        
+
         esc_motor_servo_write_u16(th);
 
         ESP_LOGI(TAG, "ch3 G(%d), P(%llu), D(%llu); th G(%d), P(%llu), D(%llu); esc(%u)", ch3_gpio, pwm_ch3.period, pwm_ch3.duty, th_gpio, pwm_th.period, pwm_th.duty, th);
