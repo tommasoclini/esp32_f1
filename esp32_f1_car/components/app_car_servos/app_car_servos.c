@@ -10,6 +10,8 @@ static const char *TAG = "app car servos";
 static bool init = false;
 
 esp_err_t esc_motor_servo_init(void){
+    gpio_reset_pin(ESC_MOTOR_SERVO_PIN);
+
     ledc_timer_config_t ledc_tim_conf = {
         .clk_cfg = LEDC_AUTO_CLK,
         .duty_resolution = SERVOS_LEDC_TIMER_BIT,

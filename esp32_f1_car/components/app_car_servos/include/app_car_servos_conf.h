@@ -5,7 +5,7 @@
 #define SERVOS_LEDC_TIMER_BIT                   LEDC_TIMER_14_BIT
 #define SERVOS_LEDC_TIMER_SPEED_MODE            LEDC_LOW_SPEED_MODE
 
-#define ESC_MOTOR_SERVO_PIN                     GPIO_NUM_0
+#define ESC_MOTOR_SERVO_PIN                     GPIO_NUM_4
 #define ESC_MOTOR_SERVO_LEDC_CHAN               LEDC_CHANNEL_0
 
 /**

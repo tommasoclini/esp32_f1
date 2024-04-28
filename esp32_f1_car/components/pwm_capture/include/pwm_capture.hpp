@@ -11,17 +11,19 @@ namespace pwm_capture
 {
     extern const char *TAG;
 
-    typedef struct {
-        int64_t t0          {0};
-        int64_t duty        {0};
-        int64_t period      {0};
-        gpio_num_t gpio     {GPIO_NUM_NC};
+    typedef struct
+    {
+        int64_t t0{0};
+        int64_t duty{0};
+        int64_t period{0};
     } pwm_item_data_t;
 
-    typedef struct {
-        QueueHandle_t queue     {NULL};
+    typedef struct
+    {
+        QueueHandle_t queue{NULL};
         pwm_item_data_t data;
-        int64_t start           {0};
+        gpio_num_t gpio{GPIO_NUM_NC};
+        int64_t start{0};
     } isr_arg_t;
 
     esp_err_t init_for_all();
@@ -38,6 +40,7 @@ namespace pwm_capture
 
         bool initialized_ = false;
         bool started_ = false;
+
     public:
         pwm_cap(gpio_num_t gpio, char *TAG);
         ~pwm_cap();
@@ -50,6 +53,8 @@ namespace pwm_capture
         esp_err_t resume();
 
         BaseType_t pwm_queue_receive(pwm_item_data_t *item, TickType_t xTicksToWait);
+
+        gpio_num_t get_gpio();
     };
-    
+
 } // namespace pwm_capture
