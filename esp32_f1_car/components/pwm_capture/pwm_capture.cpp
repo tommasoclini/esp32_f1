@@ -11,13 +11,13 @@ void IRAM_ATTR gpio_isr_handler(void *arg)
 
     pwm_capture::isr_arg_t *isr_arg = (pwm_capture::isr_arg_t *)arg;
 
-    int level = gpio_get_level(isr_arg->gpio);
+    int level = gpio_get_level(isr_arg->data.gpio);
     int64_t tmp = esp_timer_get_time();
     if (level)
     {
         isr_arg->data.period = isr_arg->data.duty + tmp - isr_arg->start;
         isr_arg->start = tmp;
-        xQueueOverwriteFromISR(isr_arg->queue, &isr_arg->data, NULL);
+        xQueueSendFromISR(isr_arg->queue, &isr_arg->data, NULL);
     }
     else
     {
@@ -35,7 +35,15 @@ namespace pwm_capture
 
     pwm_cap::pwm_cap(gpio_num_t gpio, char *TAG) : TAG_(TAG), gpio_(gpio)
     {
-        isr_arg_.gpio = gpio_;
+        isr_arg_.data.gpio = gpio_;
+        queue_ = xQueueCreate(10, sizeof(pwm_item_data_t));
+        isr_arg_.queue = queue_;
+    }
+    
+    pwm_cap::pwm_cap(gpio_num_t gpio, QueueHandle_t queue, char *TAG) : TAG_(TAG), gpio_(gpio), queue_(queue)
+    {
+        isr_arg_.data.gpio = gpio_;
+        isr_arg_.queue = queue_;
     }
 
     pwm_cap::~pwm_cap() {}
@@ -76,20 +84,17 @@ namespace pwm_capture
 
         ESP_RETURN_ON_ERROR(gpio_config(&io_conf), TAG_, "Failed to init gpio");
 
-        queue_ = xQueueCreate(1, sizeof(pwm_item_data_t));
-        isr_arg_.queue = queue_;
-
         initialized_ = true;
 
         return ESP_OK;
     }
 
-    esp_err_t pwm_cap::deinit()
+    esp_err_t pwm_cap::deinit(bool delete_queue)
     {
         if (!initialized_)
             return ESP_ERR_INVALID_STATE;
 
-        vQueueDelete(queue_);
+        if (delete_queue) vQueueDelete(queue_);
         ESP_RETURN_ON_ERROR(gpio_reset_pin(gpio_), TAG_, "Failed to reset gpio pin");
         initialized_ = false;
         return ESP_OK;

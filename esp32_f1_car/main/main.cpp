@@ -36,9 +36,11 @@ extern "C" void app_main(void)
 
     pwm_capture::init_for_all();
 
-    pwm_capture::pwm_cap th_cap(GPIO_NUM_0, "gpio 0 throttle pwm cap");
-    pwm_capture::pwm_cap ch3_cap(GPIO_NUM_1, "gpio 1 ch3 pwm cap");
-    pwm_capture::pwm_cap ch4_cap(GPIO_NUM_2, "gpio 2 ch4 pwm cap");
+    QueueHandle_t queue = xQueueCreate(10, sizeof(pwm_capture::pwm_item_data_t));
+
+    pwm_capture::pwm_cap th_cap(GPIO_NUM_0, queue, "gpio 0 throttle pwm cap");
+    pwm_capture::pwm_cap ch3_cap(GPIO_NUM_1, queue, "gpio 1 ch3 pwm cap");
+    pwm_capture::pwm_cap ch4_cap(GPIO_NUM_2, queue, "gpio 2 ch4 pwm cap");
 
     ch3_cap.init();
     ch4_cap.init();
@@ -54,19 +56,22 @@ extern "C" void app_main(void)
 
     while (1)
     {
-        pwm_capture::pwm_item_data_t pwm_th;
-        pwm_capture::pwm_item_data_t pwm_ch3;
+        static uint16_t th = 0x7fff;
 
-        ch3_cap.pwm_queue_receive(&pwm_ch3, portMAX_DELAY);
-        th_cap.pwm_queue_receive(&pwm_th, portMAX_DELAY);
-        uint16_t th = MAP(std::clamp((float)pwm_th.duty / (float)pwm_th.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)0x0, (float)0xffff);
-        if (((float)pwm_ch3.duty / (float)pwm_ch3.period) > 0.075f)
+        pwm_capture::pwm_item_data_t pwm;
+        xQueueReceive(queue, &pwm, portMAX_DELAY);
+        if (pwm.gpio == th_gpio)
         {
-            th = std::min(th, limiter_servo_val);
+            th = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)0x0, (float)0xffff);
+        } else if (pwm.gpio == ch3_gpio)
+        {
+            limiter_active = ((float)pwm.duty / (float)pwm.period) > 0.075f;
         }
+
+        if (limiter_active) th = std::min(th, limiter_servo_val);
 
         esc_motor_servo_write_u16(th);
 
-        ESP_LOGI(TAG, "ch3 G(%d), P(%llu), D(%llu); th G(%d), P(%llu), D(%llu); esc(%u)", ch3_gpio, pwm_ch3.period, pwm_ch3.duty, th_gpio, pwm_th.period, pwm_th.duty, th);
+        ESP_LOGI(TAG, "gpio(%d), duty(%llu), period(%llu), t0(%llu) esc(%u)", pwm.gpio, pwm.duty, pwm.period, pwm.t0, th);
     }
 }

@@ -16,13 +16,13 @@ namespace pwm_capture
         int64_t t0{0};
         int64_t duty{0};
         int64_t period{0};
+        gpio_num_t gpio{GPIO_NUM_NC};
     } pwm_item_data_t;
 
     typedef struct
     {
         QueueHandle_t queue{NULL};
         pwm_item_data_t data;
-        gpio_num_t gpio{GPIO_NUM_NC};
         int64_t start{0};
     } isr_arg_t;
 
@@ -43,10 +43,11 @@ namespace pwm_capture
 
     public:
         pwm_cap(gpio_num_t gpio, char *TAG);
+        pwm_cap(gpio_num_t gpio, QueueHandle_t queue, char *TAG);
         ~pwm_cap();
 
         esp_err_t init();
-        esp_err_t deinit();
+        esp_err_t deinit(bool delete_queue);
 
         esp_err_t start();
         esp_err_t stop();
