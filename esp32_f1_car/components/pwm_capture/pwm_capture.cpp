@@ -35,13 +35,13 @@ namespace pwm_capture
 
     pwm_cap::pwm_cap(gpio_num_t gpio, char *TAG) : TAG_(TAG), gpio_(gpio)
     {
-        isr_arg_.data.gpio = gpio_;
-        queue_ = xQueueCreate(10, sizeof(pwm_item_data_t));
-        isr_arg_.queue = queue_;
+        QueueHandle_t queue = xQueueCreate(10, sizeof(pwm_item_data_t));
+        pwm_cap(gpio, queue, TAG);
     }
     
     pwm_cap::pwm_cap(gpio_num_t gpio, QueueHandle_t queue, char *TAG) : TAG_(TAG), gpio_(gpio), queue_(queue)
     {
+        queue_ = queue;
         isr_arg_.data.gpio = gpio_;
         isr_arg_.queue = queue_;
     }

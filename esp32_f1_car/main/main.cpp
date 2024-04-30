@@ -27,6 +27,13 @@ static uint16_t limiter_servo_val = 0x7fff + 0x2000;
 
 #define THROTTLE_TO_SERVO(th) (limiter_active ? MIN(th, limiter_servo_val) : th)
 
+QueueHandle_t queue;
+
+pwm_capture::pwm_cap th_cap(GPIO_NUM_0, queue, "gpio 0 throttle pwm cap");
+pwm_capture::pwm_cap ch3_cap(GPIO_NUM_1, queue, "gpio 1 ch3 pwm cap");
+pwm_capture::pwm_cap ch4_cap(GPIO_NUM_2, queue, "gpio 2 ch4 pwm cap");
+pwm_capture::pwm_cap chmisc_cap(GPIO_NUM_3, queue, "gpio 3 ch misc pwm cap");
+
 extern "C" void app_main(void)
 {
     ESP_ERROR_CHECK(initialize_console());
@@ -36,12 +43,7 @@ extern "C" void app_main(void)
 
     pwm_capture::init_for_all();
 
-    QueueHandle_t queue = xQueueCreate(10, sizeof(pwm_capture::pwm_item_data_t));
-
-    pwm_capture::pwm_cap th_cap(GPIO_NUM_0, queue, "gpio 0 throttle pwm cap");
-    pwm_capture::pwm_cap ch3_cap(GPIO_NUM_1, queue, "gpio 1 ch3 pwm cap");
-    pwm_capture::pwm_cap ch4_cap(GPIO_NUM_2, queue, "gpio 2 ch4 pwm cap");
-    pwm_capture::pwm_cap chmisc_cap(GPIO_NUM_3, queue, "gpio 3 ch misc pwm cap");
+    queue = xQueueCreate(10, sizeof(pwm_capture::pwm_item_data_t));
 
     ch3_cap.init();
     ch4_cap.init();
