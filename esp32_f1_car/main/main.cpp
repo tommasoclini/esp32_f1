@@ -41,9 +41,12 @@ extern "C" void app_main(void)
     pwm_capture::pwm_cap th_cap(GPIO_NUM_0, queue, "gpio 0 throttle pwm cap");
     pwm_capture::pwm_cap ch3_cap(GPIO_NUM_1, queue, "gpio 1 ch3 pwm cap");
     pwm_capture::pwm_cap ch4_cap(GPIO_NUM_2, queue, "gpio 2 ch4 pwm cap");
+    pwm_capture::pwm_cap chmisc_cap(GPIO_NUM_3, queue, "gpio 3 ch misc pwm cap");
 
     ch3_cap.init();
     ch4_cap.init();
+    chmisc_cap.init();
+    
     th_cap.init();
 
     ch3_cap.start();
