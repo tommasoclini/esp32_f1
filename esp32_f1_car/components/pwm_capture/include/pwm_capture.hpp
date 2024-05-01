@@ -43,10 +43,10 @@ namespace pwm_capture
 
     public:
         pwm_cap(gpio_num_t gpio, char *TAG);
-        pwm_cap(gpio_num_t gpio, QueueHandle_t queue, char *TAG);
         ~pwm_cap();
 
         esp_err_t init();
+        esp_err_t init(QueueHandle_t queue);
         esp_err_t deinit(bool delete_queue);
 
         esp_err_t start();

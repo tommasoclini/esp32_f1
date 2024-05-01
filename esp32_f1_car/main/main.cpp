@@ -2,6 +2,10 @@
 #include <app_car_servos.h>
 #include <pwm_capture.hpp>
 
+#include <blufi_wrap.h>
+
+#include <esp-libtelnet.h>
+
 #include <esp_log.h>
 
 #include <freertos/FreeRTOS.h>
@@ -27,33 +31,40 @@ static uint16_t limiter_servo_val = 0x7fff + 0x2000;
 
 #define THROTTLE_TO_SERVO(th) (limiter_active ? MIN(th, limiter_servo_val) : th)
 
-QueueHandle_t queue;
+pwm_capture::pwm_cap th_cap(GPIO_NUM_0, "gpio 0 throttle pwm cap");
+pwm_capture::pwm_cap ch3_cap(GPIO_NUM_1, "gpio 1 ch3 pwm cap");
+pwm_capture::pwm_cap ch4_cap(GPIO_NUM_2, "gpio 2 ch4 pwm cap");
+pwm_capture::pwm_cap chmisc_cap(GPIO_NUM_3, "gpio 3 ch misc pwm cap");
 
-pwm_capture::pwm_cap th_cap(GPIO_NUM_0, queue, "gpio 0 throttle pwm cap");
-pwm_capture::pwm_cap ch3_cap(GPIO_NUM_1, queue, "gpio 1 ch3 pwm cap");
-pwm_capture::pwm_cap ch4_cap(GPIO_NUM_2, queue, "gpio 2 ch4 pwm cap");
-pwm_capture::pwm_cap chmisc_cap(GPIO_NUM_3, queue, "gpio 3 ch misc pwm cap");
+static void telnet_rx_cb(const char *buf, size_t len) {
+    ESP_LOGI(TAG, "Received %d bytes from telnet: %.*s", len, len, buf);
+}
 
 extern "C" void app_main(void)
 {
-    ESP_ERROR_CHECK(initialize_console());
-    ESP_ERROR_CHECK(esc_motor_servo_init());
+    ESP_ERROR_CHECK(blufi_wrap_init());
 
+    init_telnet(telnet_rx_cb);
+    start_telnet();
+    telnet_mirror_to_uart(true);
+
+    ESP_ERROR_CHECK(initialize_console());
     ESP_ERROR_CHECK(start_console());
+    ESP_ERROR_CHECK(esc_motor_servo_init());
 
     pwm_capture::init_for_all();
 
-    queue = xQueueCreate(10, sizeof(pwm_capture::pwm_item_data_t));
+    QueueHandle_t queue = xQueueCreate(10, sizeof(pwm_capture::pwm_item_data_t));
 
-    ch3_cap.init();
+    th_cap.init(queue);
+    ch3_cap.init(queue);
     ch4_cap.init();
     chmisc_cap.init();
-    
-    th_cap.init();
 
-    ch3_cap.start();
-    // ch4_cap.start();
     th_cap.start();
+    ch3_cap.start();
+    ch4_cap.start();
+    chmisc_cap.start();
 
     gpio_num_t th_gpio = th_cap.get_gpio();
     gpio_num_t ch3_gpio = ch3_cap.get_gpio();
@@ -68,12 +79,14 @@ extern "C" void app_main(void)
         if (pwm.gpio == th_gpio)
         {
             th = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)0x0, (float)0xffff);
-        } else if (pwm.gpio == ch3_gpio)
+        }
+        else if (pwm.gpio == ch3_gpio)
         {
             limiter_active = ((float)pwm.duty / (float)pwm.period) > 0.075f;
         }
 
-        if (limiter_active) th = std::min(th, limiter_servo_val);
+        if (limiter_active)
+            th = std::min(th, limiter_servo_val);
 
         esc_motor_servo_write_u16(th);
 

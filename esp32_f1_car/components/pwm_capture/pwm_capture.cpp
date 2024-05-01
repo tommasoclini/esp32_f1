@@ -32,18 +32,10 @@ bool all_init = false;
 namespace pwm_capture
 {
     const char *TAG = "pwm capture";
-
+    
     pwm_cap::pwm_cap(gpio_num_t gpio, char *TAG) : TAG_(TAG), gpio_(gpio)
     {
-        QueueHandle_t queue = xQueueCreate(10, sizeof(pwm_item_data_t));
-        pwm_cap(gpio, queue, TAG);
-    }
-    
-    pwm_cap::pwm_cap(gpio_num_t gpio, QueueHandle_t queue, char *TAG) : TAG_(TAG), gpio_(gpio), queue_(queue)
-    {
-        queue_ = queue;
         isr_arg_.data.gpio = gpio_;
-        isr_arg_.queue = queue_;
     }
 
     pwm_cap::~pwm_cap() {}
@@ -72,17 +64,28 @@ namespace pwm_capture
     {
         if (!all_init || initialized_)
             return ESP_ERR_INVALID_STATE;
+        QueueHandle_t queue = xQueueCreate(10, sizeof(pwm_item_data_t));
+        return init(queue);
+    }
+
+    esp_err_t pwm_cap::init(QueueHandle_t queue)
+    {
+        if (!all_init || initialized_)
+            return ESP_ERR_INVALID_STATE;
 
         gpio_reset_pin(gpio_);
         gpio_config_t io_conf = {
             .pin_bit_mask = ((uint64_t)1 << (uint64_t)gpio_),
             .mode = GPIO_MODE_INPUT,
             .pull_up_en = (gpio_pullup_t)0,
-            .pull_down_en = (gpio_pulldown_t)0,
+            .pull_down_en = (gpio_pulldown_t)1,
             .intr_type = GPIO_INTR_ANYEDGE,
         };
 
         ESP_RETURN_ON_ERROR(gpio_config(&io_conf), TAG_, "Failed to init gpio");
+
+        queue_ = queue;
+        isr_arg_.queue = queue_;
 
         initialized_ = true;
 
