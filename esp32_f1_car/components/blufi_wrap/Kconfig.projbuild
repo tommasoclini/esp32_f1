@@ -1,4 +1,4 @@
-menu "Example Configuration"
+menu "blufi_wrap Configuration"
 
     config EXAMPLE_WIFI_CONNECTION_MAXIMUM_RETRY
         int "WiFi connection maximum retry"
