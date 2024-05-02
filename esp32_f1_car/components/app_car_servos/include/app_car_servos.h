@@ -10,12 +10,17 @@ extern "C" {
 /**
  * @brief Init steering and esc servos
 */
-esp_err_t esc_motor_servo_init(void);
+esp_err_t init_servos(void);
 
 /**
  * @brief Deinit steering and esc servos
 */
-esp_err_t esc_motor_servo_deinit(void);
+esp_err_t deinit_servos(void);
+
+/**
+ * @brief Write a uint16 to steering servo
+*/
+esp_err_t steering_servo_write_u16(uint16_t);
 
 /**
  * @brief Write a uint16 to esc motor servo

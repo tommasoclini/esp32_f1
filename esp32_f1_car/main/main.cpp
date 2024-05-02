@@ -31,10 +31,10 @@ static uint16_t limiter_servo_val = 0x7fff + 0x2000;
 
 #define THROTTLE_TO_SERVO(th) (limiter_active ? MIN(th, limiter_servo_val) : th)
 
-pwm_capture::pwm_cap th_cap(GPIO_NUM_0, "gpio 0 throttle pwm cap");
-pwm_capture::pwm_cap ch3_cap(GPIO_NUM_1, "gpio 1 ch3 pwm cap");
-pwm_capture::pwm_cap ch4_cap(GPIO_NUM_2, "gpio 2 ch4 pwm cap");
-pwm_capture::pwm_cap chmisc_cap(GPIO_NUM_3, "gpio 3 ch misc pwm cap");
+pwm_capture::pwm_cap th_cap(GPIO_NUM_1, "gpio 1 th pwm cap");
+pwm_capture::pwm_cap ch3_cap(GPIO_NUM_2, "gpio 2 ch3 pwm cap");
+pwm_capture::pwm_cap ch4_cap(GPIO_NUM_3, "gpio 3 ch4 pwm cap");
+pwm_capture::pwm_cap st_cap(GPIO_NUM_0, "gpio 0 st pwm cap");
 
 /*static void telnet_rx_cb(const char *buf, size_t len) {
     ESP_LOGI(TAG, "Received %d bytes from telnet: %.*s", len, len, buf);
@@ -50,22 +50,24 @@ extern "C" void app_main(void)
 
     ESP_ERROR_CHECK(initialize_console());
     ESP_ERROR_CHECK(start_console());
-    ESP_ERROR_CHECK(esc_motor_servo_init());
+
+    ESP_ERROR_CHECK(init_servos());
 
     pwm_capture::init_for_all();
 
-    QueueHandle_t queue = xQueueCreate(10, sizeof(pwm_capture::pwm_item_data_t));
+    QueueHandle_t queue = xQueueCreate(20, sizeof(pwm_capture::pwm_item_data_t));
 
+    st_cap.init(queue);
     th_cap.init(queue);
     ch3_cap.init(queue);
-    ch4_cap.init();
-    chmisc_cap.init();
+    ch4_cap.init(queue);
 
+    st_cap.start();
     th_cap.start();
     ch3_cap.start();
-    ch4_cap.start();
-    chmisc_cap.start();
+    // ch4_cap.start();
 
+    gpio_num_t st_gpio = st_cap.get_gpio();
     gpio_num_t th_gpio = th_cap.get_gpio();
     gpio_num_t ch3_gpio = ch3_cap.get_gpio();
     // gpio_num_t ch4_gpio = ch4_cap.get_gpio();
@@ -73,12 +75,17 @@ extern "C" void app_main(void)
     while (1)
     {
         static uint16_t th = 0x7fff;
+        static uint16_t st = 0x7fff;
 
         pwm_capture::pwm_item_data_t pwm;
         xQueueReceive(queue, &pwm, portMAX_DELAY);
         if (pwm.gpio == th_gpio)
         {
             th = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)0x0, (float)0xffff);
+        }
+        else if (pwm.gpio == st_gpio) {
+            st = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)0x0, (float)0xffff);
+            steering_servo_write_u16(st);
         }
         else if (pwm.gpio == ch3_gpio)
         {
@@ -88,8 +95,12 @@ extern "C" void app_main(void)
         if (limiter_active)
             th = std::min(th, limiter_servo_val);
 
-        esc_motor_servo_write_u16(th);
+        static uint16_t last_th = 0x7fff;
+        if (th != last_th){
+            esc_motor_servo_write_u16(th);
+            last_th = th;
+        }
 
-        ESP_LOGI(TAG, "gpio(%d), duty(%llu), period(%llu), t0(%llu) esc(%u)", pwm.gpio, pwm.duty, pwm.period, pwm.t0, th);
+        //ESP_LOGI(TAG, "gpio(%d), duty(%llu), period(%llu), t0(%llu) esc(%u)", pwm.gpio, pwm.duty, pwm.period, pwm.t0, th);
     }
 }
