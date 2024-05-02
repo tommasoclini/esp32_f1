@@ -2,9 +2,9 @@
 #include <app_car_servos.h>
 #include <pwm_capture.hpp>
 
-#include <blufi_wrap.h>
+// #include <blufi_wrap.h>
 
-#include <esp-libtelnet.h>
+// #include <esp-libtelnet.h>
 
 #include <esp_log.h>
 
@@ -36,17 +36,17 @@ pwm_capture::pwm_cap ch3_cap(GPIO_NUM_1, "gpio 1 ch3 pwm cap");
 pwm_capture::pwm_cap ch4_cap(GPIO_NUM_2, "gpio 2 ch4 pwm cap");
 pwm_capture::pwm_cap chmisc_cap(GPIO_NUM_3, "gpio 3 ch misc pwm cap");
 
-static void telnet_rx_cb(const char *buf, size_t len) {
+/*static void telnet_rx_cb(const char *buf, size_t len) {
     ESP_LOGI(TAG, "Received %d bytes from telnet: %.*s", len, len, buf);
-}
+}*/
 
 extern "C" void app_main(void)
 {
-    ESP_ERROR_CHECK(blufi_wrap_init());
+    /*ESP_ERROR_CHECK(blufi_wrap_init());
 
     init_telnet(telnet_rx_cb);
     start_telnet();
-    telnet_mirror_to_uart(true);
+    telnet_mirror_to_uart(true);*/
 
     ESP_ERROR_CHECK(initialize_console());
     ESP_ERROR_CHECK(start_console());
