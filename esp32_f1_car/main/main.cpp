@@ -94,6 +94,7 @@ extern "C" void app_main(void)
                 // th = MAP(duty, duty_min, duty_max, (float)(0x0), (float)(0xffff));
                 duty = duty_mid - (duty_min - duty) * brake_coeff;
             }
+            th = MAP(duty, duty_min, duty_max, (float)0x0, (float)0xffff);
         }
         else if (pwm.gpio == st_gpio)
         {
