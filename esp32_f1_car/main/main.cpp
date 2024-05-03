@@ -3,16 +3,11 @@
 #include <pwm_capture.hpp>
 #include <app_car_params.h>
 
-// #include <blufi_wrap.h>
-
-// #include <esp-libtelnet.h>
-
 #include <esp_log.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-// #include <math.h>
 #include <algorithm>
 
 #define MAP(x, l0, h0, l1, h1) (((h1 - l1) / (h0 - l0)) * (x - l0) + l1)
@@ -38,18 +33,9 @@ pwm_capture::pwm_cap th_cap(GPIO_NUM_1, "gpio 1 th pwm cap");
 pwm_capture::pwm_cap ch3_cap(GPIO_NUM_2, "gpio 2 ch3 pwm cap");
 pwm_capture::pwm_cap ch4_cap(GPIO_NUM_3, "gpio 3 ch4 pwm cap");
 
-/*static void telnet_rx_cb(const char *buf, size_t len) {
-    ESP_LOGI(TAG, "Received %d bytes from telnet: %.*s", len, len, buf);
-}*/
 
 extern "C" void app_main(void)
 {
-    /*ESP_ERROR_CHECK(blufi_wrap_init());
-
-    init_telnet(telnet_rx_cb);
-    start_telnet();
-    telnet_mirror_to_uart(true);*/
-
     ESP_ERROR_CHECK(init_params());
     
     ESP_ERROR_CHECK(get_limiter_p(&limiter_p));
