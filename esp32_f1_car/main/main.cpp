@@ -93,7 +93,7 @@ extern "C" void app_main(void)
                 duty = (duty - duty_mid) * throttle_coeff + duty_mid;
             } else {
                 // th = MAP(duty, duty_min, duty_max, (float)(0x0), (float)(0xffff));
-                duty = duty_mid - (duty_min - duty) * brake_coeff;
+                duty = duty_mid - (duty_mid - duty) * brake_coeff;
             }
             th = MAP(duty, duty_min, duty_max, (float)0x0, (float)0xffff);
         }
