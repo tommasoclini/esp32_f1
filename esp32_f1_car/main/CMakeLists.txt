@@ -4,4 +4,5 @@ idf_component_register(SRCS "main.cpp"
                             app_car_servos
                             pwm_capture
                             #esp-libtelnet
-                            blufi_wrap)
+                            #blufi_wrap
+                            app_car_params)

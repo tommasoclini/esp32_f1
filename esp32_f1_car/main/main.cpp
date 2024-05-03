@@ -1,6 +1,7 @@
 #include <app_console.h>
 #include <app_car_servos.h>
 #include <pwm_capture.hpp>
+#include <app_car_params.h>
 
 // #include <blufi_wrap.h>
 
@@ -27,7 +28,7 @@
 static const char *TAG = "main";
 
 static bool limiter_active;
-static uint16_t limiter_servo_val = 0x7fff + 0x2000;
+static uint16_t *limiter_p = NULL;
 
 #define THROTTLE_TO_SERVO(th) (limiter_active ? MIN(th, limiter_servo_val) : th)
 
@@ -47,6 +48,10 @@ extern "C" void app_main(void)
     init_telnet(telnet_rx_cb);
     start_telnet();
     telnet_mirror_to_uart(true);*/
+
+    ESP_ERROR_CHECK(init_params());
+    
+    ESP_ERROR_CHECK(get_limiter_p(&limiter_p));
 
     ESP_ERROR_CHECK(initialize_console());
     ESP_ERROR_CHECK(start_console());
@@ -93,7 +98,7 @@ extern "C" void app_main(void)
         }
 
         if (limiter_active)
-            th = std::min(th, limiter_servo_val);
+            th = std::min(th, *limiter_p);
 
         static uint16_t last_th = 0x7fff;
         if (th != last_th){

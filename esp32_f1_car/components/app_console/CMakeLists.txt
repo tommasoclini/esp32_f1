@@ -1,3 +1,3 @@
 idf_component_register(SRCS "app_console.c"
                     INCLUDE_DIRS "include"
-                    REQUIRES console nvs_flash cmd_system)
+                    REQUIRES console cmd_system cmd_app_car)

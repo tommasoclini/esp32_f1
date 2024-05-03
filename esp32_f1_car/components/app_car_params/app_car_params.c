@@ -15,9 +15,12 @@ static const char *APP_CAR_PARAMS_NS = "app_car_params";
 static const char *LIMITER_NAME = "limiter";
 #define LIMITER_DEFAULT_VAL (0x7fff + 0x2000)
 
-uint16_t limiter = 0x7fff + 0x2000;
+static uint16_t limiter = 1000;
+
+bool init = false;
 
 esp_err_t init_params(void){
+    if (init) return ESP_ERR_INVALID_STATE;
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -31,12 +34,20 @@ esp_err_t init_params(void){
     err = nvs_get_u16(handle, LIMITER_NAME, &limiter);
     if (err == ESP_ERR_NVS_NOT_FOUND)
     {
-        nvs_set_i16(handle, LIMITER_NAME, LIMITER_DEFAULT_VAL);
+        ESP_LOGW(TAG, "Limiter not found in nvs");
+        nvs_set_u16(handle, LIMITER_NAME, LIMITER_DEFAULT_VAL);
         limiter = LIMITER_DEFAULT_VAL;
+        err = ESP_OK;
     }
-
     nvs_close(handle);
 
+    init = true;
+
+    return ESP_OK;
+}
+
+esp_err_t deinit_params(void){
+    init = false;
     return ESP_OK;
 }
 
@@ -45,11 +56,17 @@ esp_err_t get_limiter(uint16_t *lim){
     return ESP_OK;
 }
 
+esp_err_t get_limiter_p(uint16_t **lim_p){
+    *lim_p = &limiter;
+    return ESP_OK;
+}
+
 esp_err_t set_limiter(uint16_t lim){
     limiter = lim;
+    esp_err_t ret = ESP_OK;
     nvs_handle_t handle;
     ESP_RETURN_ON_ERROR(nvs_open(APP_CAR_PARAMS_NS, NVS_READWRITE, &handle), TAG, "Failed to open params namspace");
-    nvs_set_i16(handle, LIMITER_NAME, LIMITER_DEFAULT_VAL);
-    nvs_close();
-    return ESP_OK;
+    nvs_set_u16(handle, LIMITER_NAME, lim);
+    nvs_close(handle);
+    return ret;
 }
