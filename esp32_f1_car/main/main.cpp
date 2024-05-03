@@ -27,6 +27,7 @@ static const float duty_max = 0.10f;
 static const float duty_mid = (duty_min + duty_max) / 2.0f;
 
 #define THROTTLE_COEFF_DEFAULT_VAL      0.2f // min 0.0 max 1.0
+#define THROTTLE_NOS_COEFF              1.5f
 #define BRAKE_COEFF_DEFAULT_VAL         0.4f // min 0.0 max 1.0
 
 static float throttle_coeff = THROTTLE_COEFF_DEFAULT_VAL;
@@ -60,7 +61,7 @@ extern "C" void app_main(void)
 
     pwm_capture::init_for_all();
 
-    QueueHandle_t queue = xQueueCreate(20, sizeof(pwm_capture::pwm_item_data_t));
+    QueueHandle_t queue = xQueueCreate(25, sizeof(pwm_capture::pwm_item_data_t));
 
     st_cap.init(queue);
     th_cap.init(queue);
@@ -113,7 +114,7 @@ extern "C" void app_main(void)
             {
                 if (boost)
                 {
-                    throttle_coeff = std::min(THROTTLE_COEFF_DEFAULT_VAL * 2.0f, 1.0f);
+                    throttle_coeff = std::min(THROTTLE_COEFF_DEFAULT_VAL * THROTTLE_NOS_COEFF, 1.0f);
                 }
                 else
                 {
