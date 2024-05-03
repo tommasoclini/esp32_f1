@@ -88,7 +88,7 @@ extern "C" void app_main(void)
         xQueueReceive(queue, &pwm, portMAX_DELAY);
         if (pwm.gpio == th_gpio)
         {
-            th = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)(0x7fff - 1999), (float)(0x7fff + 1999));
+            th = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)(0x7fff - THROTTLE_RANGE), (float)(0x7fff + THROTTLE_RANGE));
         }
         else if (pwm.gpio == st_gpio) {
             st = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)0xffff, (float)0x0);
