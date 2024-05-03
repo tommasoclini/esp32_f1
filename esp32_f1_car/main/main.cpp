@@ -89,7 +89,7 @@ extern "C" void app_main(void)
             th = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)0x0, (float)0xffff);
         }
         else if (pwm.gpio == st_gpio) {
-            st = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)0x0, (float)0xffff);
+            st = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)0xffff, (float)0x0);
             steering_servo_write_u16(st);
         }
         else if (pwm.gpio == ch3_gpio)
