@@ -15,14 +15,6 @@
 // #include <math.h>
 #include <algorithm>
 
-#ifndef MAX
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
-#endif
-
-#ifndef MIN
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-#endif
-
 #define MAP(x, l0, h0, l1, h1) (((h1 - l1) / (h0 - l0)) * (x - l0) + l1)
 
 static const char *TAG = "main";
@@ -30,14 +22,20 @@ static const char *TAG = "main";
 static bool limiter_active;
 static uint16_t *limiter_p = NULL;
 
-#define THROTTLE_TO_SERVO(th) (limiter_active ? MIN(th, limiter_servo_val) : th)
+static const float duty_min = 0.05f;
+static const float duty_max = 0.10f;
+static const float duty_mid = (duty_min + duty_max) / 2.0f;
 
-#define THROTTLE_RANGE (0x1999 * 0x2)
+#define THROTTLE_COEFF_DEFAULT_VAL      0.2f // min 0.0 max 1.0
+#define BRAKE_COEFF_DEFAULT_VAL         0.4f // min 0.0 max 1.0
 
+static float throttle_coeff = THROTTLE_COEFF_DEFAULT_VAL;
+static float brake_coeff = THROTTLE_COEFF_DEFAULT_VAL;
+
+pwm_capture::pwm_cap st_cap(GPIO_NUM_0, "gpio 0 st pwm cap");
 pwm_capture::pwm_cap th_cap(GPIO_NUM_1, "gpio 1 th pwm cap");
 pwm_capture::pwm_cap ch3_cap(GPIO_NUM_2, "gpio 2 ch3 pwm cap");
 pwm_capture::pwm_cap ch4_cap(GPIO_NUM_3, "gpio 3 ch4 pwm cap");
-pwm_capture::pwm_cap st_cap(GPIO_NUM_0, "gpio 0 st pwm cap");
 
 /*static void telnet_rx_cb(const char *buf, size_t len) {
     ESP_LOGI(TAG, "Received %d bytes from telnet: %.*s", len, len, buf);
@@ -72,12 +70,12 @@ extern "C" void app_main(void)
     st_cap.start();
     th_cap.start();
     ch3_cap.start();
-    // ch4_cap.start();
+    ch4_cap.start();
 
     gpio_num_t st_gpio = st_cap.get_gpio();
     gpio_num_t th_gpio = th_cap.get_gpio();
     gpio_num_t ch3_gpio = ch3_cap.get_gpio();
-    // gpio_num_t ch4_gpio = ch4_cap.get_gpio();
+    gpio_num_t ch4_gpio = ch4_cap.get_gpio();
 
     while (1)
     {
@@ -88,20 +86,40 @@ extern "C" void app_main(void)
         xQueueReceive(queue, &pwm, portMAX_DELAY);
         if (pwm.gpio == th_gpio)
         {
-            float duty = std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f);
-            if (duty >= 0.075f){
-                th = MAP(duty, 0.05f, 0.10f, (float)(0x7fff - THROTTLE_RANGE), (float)(0x7fff + THROTTLE_RANGE));
+            float duty = std::clamp((float)pwm.duty / (float)pwm.period, duty_min, duty_max);
+            if (duty >= duty_mid){
+                // th = MAP(duty, duty_min, duty_max, (float)(0x7fff - THROTTLE_RANGE), (float)(0x7fff + THROTTLE_RANGE));
+                duty = (duty - duty_mid) * throttle_coeff + duty_mid;
             } else {
-                th = MAP(duty, 0.05f, 0.10f, (float)(0x0), (float)(0xffff));
+                // th = MAP(duty, duty_min, duty_max, (float)(0x0), (float)(0xffff));
+                duty = duty_mid - (duty_min - duty) * brake_coeff;
             }
         }
-        else if (pwm.gpio == st_gpio) {
-            st = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)0xffff, (float)0x0);
+        else if (pwm.gpio == st_gpio)
+        {
+            st = MAP(std::clamp((float)pwm.duty / (float)pwm.period, duty_min, duty_max), duty_min, duty_max, (float)0xffff, (float)0x0);
             steering_servo_write_u16(st);
         }
         else if (pwm.gpio == ch3_gpio)
         {
-            limiter_active = ((float)pwm.duty / (float)pwm.period) > 0.075f;
+            limiter_active = ((float)pwm.duty / (float)pwm.period) > duty_mid;
+        }
+        else if (pwm.gpio == ch4_gpio)
+        {
+            static bool last_boost;
+            bool boost = ((float)pwm.duty / (float)pwm.period) >= duty_mid;
+            if (boost != last_boost)
+            {
+                if (boost)
+                {
+                    throttle_coeff = std::min(THROTTLE_COEFF_DEFAULT_VAL * 2.0f, 1.0f);
+                }
+                else
+                {
+                    throttle_coeff = THROTTLE_COEFF_DEFAULT_VAL;
+                }
+            }
+            last_boost = boost;
         }
 
         if (limiter_active)
