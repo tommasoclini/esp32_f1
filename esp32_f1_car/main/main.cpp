@@ -32,7 +32,7 @@ static uint16_t *limiter_p = NULL;
 
 #define THROTTLE_TO_SERVO(th) (limiter_active ? MIN(th, limiter_servo_val) : th)
 
-#define THROTTLE_RANGE 0x1999
+#define THROTTLE_RANGE (0x1999 * 0x2)
 
 pwm_capture::pwm_cap th_cap(GPIO_NUM_1, "gpio 1 th pwm cap");
 pwm_capture::pwm_cap ch3_cap(GPIO_NUM_2, "gpio 2 ch3 pwm cap");
@@ -88,7 +88,12 @@ extern "C" void app_main(void)
         xQueueReceive(queue, &pwm, portMAX_DELAY);
         if (pwm.gpio == th_gpio)
         {
-            th = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)(0x7fff - THROTTLE_RANGE), (float)(0x7fff + THROTTLE_RANGE));
+            float duty = std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f);
+            if (duty >= 0.075f){
+                th = MAP(duty, 0.05f, 0.10f, (float)(0x7fff - THROTTLE_RANGE), (float)(0x7fff + THROTTLE_RANGE));
+            } else {
+                th = MAP(duty, 0.05f, 0.10f, (float)(0x0), (float)(0xffff));
+            }
         }
         else if (pwm.gpio == st_gpio) {
             st = MAP(std::clamp((float)pwm.duty / (float)pwm.period, 0.05f, 0.10f), 0.05f, 0.10f, (float)0xffff, (float)0x0);
