@@ -12,6 +12,11 @@
 
 static const char *TAG = "main";
 
+#define POINT_MIDDLE        0.2f
+#define POINT_END           0.3f
+
+#define ACCEL_LIMIT         0.2f
+
 static bool limiter_active;
 static uint16_t *limiter_p = NULL;
 
@@ -19,9 +24,12 @@ static const float duty_min = 0.05f;
 static const float duty_max = 0.10f;
 static const float duty_mid = (duty_min + duty_max) / 2.0f;
 
+static const float diff_max_mid = duty_max - duty_mid;
+static const float diff_max_mid_2 = diff_max_mid / 2.0;
+
 static float a, b, c;
 
-static const float brake_coeff = 0.6f;
+static const float brake_coeff = 0.8f;
 
 pwm_capture::pwm_cap st_cap(GPIO_NUM_0, "gpio 0 st pwm cap");
 pwm_capture::pwm_cap th_cap(GPIO_NUM_1, "gpio 1 th pwm cap");
@@ -36,26 +44,30 @@ static T map(T x, T l0, T h0, T l1, T h1){
 template<typename T>
 void parameters(T *a, T *b, T *c, T x1, T y1, T x2, T y2, T x3, T y3){
     T denom = (x1 - x2) * (x1 - x3) * (x2 - x3);
-    *a     = (x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2)) / denom;
-    *b     = (x3*x3 * (y1 - y2) + x2*x2 * (y3 - y1) + x1*x1 * (y2 - y3)) / denom;
-    *c     = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom;
+    *a = (x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2)) / denom;
+    *b = (x3*x3 * (y1 - y2) + x2*x2 * (y3 - y1) + x1*x1 * (y2 - y3)) / denom;
+    *c = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom;
 }
 
 template<typename T>
 static T process_duty(T duty){
     float x = std::abs(duty - duty_mid);
+    float offset = 0.0f;
     if (duty >= duty_mid)
     {
-        duty = duty_mid + a * x*x + b * x + c;
+        static float last_offset = 0.0f;
+        offset = std::min(a * x*x + b * x + c, last_offset + );
     } else {
-        duty = duty_mid - x * brake_coeff;
+        offset = - x * brake_coeff;
     }
+
+    duty = duty_mid + offset;
     return duty;
 }
 
 extern "C" void app_main(void)
 {
-    parameters(&a, &b, &c, 0.0f, 0.0f, 0.0125f, 0.0025f, 0.025f, 0.006f);
+    parameters(&a, &b, &c, 0.0f, 0.0f, diff_max_mid_2, diff_max_mid_2 * POINT_MIDDLE, diff_max_mid, diff_max_mid * POINT_END);
     ESP_ERROR_CHECK(init_params());
     
     ESP_ERROR_CHECK(get_limiter_p(&limiter_p));
