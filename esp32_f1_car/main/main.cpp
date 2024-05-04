@@ -50,13 +50,19 @@ void parameters(T *a, T *b, T *c, T x1, T y1, T x2, T y2, T x3, T y3){
 }
 
 template<typename T>
-static T process_duty(T duty){
+static T process_duty(T duty, int64_t t0){
     float x = std::abs(duty - duty_mid);
     float offset = 0.0f;
     if (duty >= duty_mid)
     {
         static float last_offset = 0.0f;
-        offset = std::min(a * x*x + b * x + c, last_offset + );
+        static int64_t last_t0 = 0;
+        float dt = (float)(t0 - last_t0) / 1000.0f;
+
+        offset = std::min(a * x*x + b * x + c, last_offset + (ACCEL_LIMIT * diff_max_mid * POINT_END) / dt);
+        
+        last_offset = offset;
+        last_t0 = t0;
     } else {
         offset = - x * brake_coeff;
     }
@@ -107,7 +113,7 @@ extern "C" void app_main(void)
         {
             float duty = std::clamp((float)pwm.duty / (float)pwm.period, duty_min, duty_max);
             
-            duty = process_duty(duty);
+            duty = process_duty(duty, pwm.t0);
 
             th = map(duty, duty_min, duty_max, (float)0x0, (float)0xffff);
         }
