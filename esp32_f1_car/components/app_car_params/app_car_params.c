@@ -13,7 +13,7 @@ static const char *TAG = "app car params";
 static const char *APP_CAR_PARAMS_NS = "app_car_params";
 
 static const char *LIMITER_NAME = "limiter";
-#define LIMITER_DEFAULT_VAL (0x7fff + 0x2000)
+#define LIMITER_DEFAULT_VAL (35000)
 
 static uint16_t limiter = 1000;
 

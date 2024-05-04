@@ -21,11 +21,13 @@ static const float duty_min = 0.05f;
 static const float duty_max = 0.10f;
 static const float duty_mid = (duty_min + duty_max) / 2.0f;
 
-#define THROTTLE_COEFF_DEFAULT_VAL      0.2f // min 0.0 max 1.0
+#define THROTTLE_COEFF_DEFAULT_VAL      0.15f // min 0.0 max 1.0
+#define THROTTLE_COEFF_1_DEFAULT_VAL    0.21f
 #define THROTTLE_NOS_COEFF              1.5f
-#define BRAKE_COEFF_DEFAULT_VAL         0.4f // min 0.0 max 1.0
+#define BRAKE_COEFF_DEFAULT_VAL         0.8f // min 0.0 max 1.0
 
 static float throttle_coeff = THROTTLE_COEFF_DEFAULT_VAL;
+static float throttle_coeff_1 = THROTTLE_COEFF_1_DEFAULT_VAL;
 static float brake_coeff = THROTTLE_COEFF_DEFAULT_VAL;
 
 pwm_capture::pwm_cap st_cap(GPIO_NUM_0, "gpio 0 st pwm cap");
@@ -76,7 +78,13 @@ extern "C" void app_main(void)
             float duty = std::clamp((float)pwm.duty / (float)pwm.period, duty_min, duty_max);
             if (duty >= duty_mid){
                 // th = MAP(duty, duty_min, duty_max, (float)(0x7fff - THROTTLE_RANGE), (float)(0x7fff + THROTTLE_RANGE));
-                duty = (duty - duty_mid) * throttle_coeff + duty_mid;
+                float x = (duty - duty_mid);
+                if (x <= (duty_max + duty_mid) / 2.0f)
+                {
+                    duty = duty_mid + throttle_coeff * x;
+                } else {
+                    duty = duty_mid + throttle_coeff_1 * x;
+                }
             } else {
                 // th = MAP(duty, duty_min, duty_max, (float)(0x0), (float)(0xffff));
                 duty = duty_mid - (duty_mid - duty) * brake_coeff;
