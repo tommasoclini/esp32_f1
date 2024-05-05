@@ -15,7 +15,7 @@ static const char *TAG = "main";
 #define POINT_MIDDLE            0.2f
 #define POINT_END               0.3f
 
-#define ACCEL_LIMIT_DEFAULT     0.25f
+#define ACCEL_LIMIT_DEFAULT     0.35f
 #define ACCEL_LIMIT_BOOST       (ACCEL_LIMIT_DEFAULT * 1.3f)
 
 static bool limiter_active;
@@ -56,16 +56,23 @@ static float process_duty(float duty, int64_t t0){
     float x = std::abs(duty - duty_mid);
     float offset = 0.0f;
     static int64_t last_t0 = 0;
+    static bool fw = false;
     if (duty >= duty_mid)
     {
         static float last_offset = 0.0f;
+        if (!fw){
+            last_offset = 0.0f;
+            fw = true;
+        }
+
         float dt = (float)(t0 - last_t0) / 1000.0f;
 
-        float accel_limit = (((accel_boost ? ACCEL_LIMIT_BOOST : ACCEL_LIMIT_DEFAULT) * diff_max_mid * POINT_END) / dt);
-        offset = std::min(a * x*x + b * x + c, last_offset + accel_limit);
+        float max_accel_increase = (((accel_boost ? ACCEL_LIMIT_BOOST : ACCEL_LIMIT_DEFAULT) * diff_max_mid * POINT_END) / dt);
+        offset = std::min(a * x*x + b * x + c, last_offset + max_accel_increase);
 
         last_offset = offset;
     } else {
+        if (fw) fw = false;
         offset = - x * brake_coeff;
     }
 
@@ -112,6 +119,7 @@ extern "C" void app_main(void)
 
         pwm_capture::pwm_item_data_t pwm;
         xQueueReceive(queue, &pwm, portMAX_DELAY);
+
         if (pwm.gpio == th_gpio)
         {
             float duty = std::clamp((float)pwm.duty / (float)pwm.period, duty_min, duty_max);
