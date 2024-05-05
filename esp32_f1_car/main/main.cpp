@@ -12,13 +12,16 @@
 
 static const char *TAG = "main";
 
-#define POINT_MIDDLE        0.2f
-#define POINT_END           0.3f
+#define POINT_MIDDLE            0.2f
+#define POINT_END               0.3f
 
-#define ACCEL_LIMIT         0.2f
+#define ACCEL_LIMIT_DEFAULT     0.25f
+#define ACCEL_LIMIT_BOOST       (ACCEL_LIMIT_DEFAULT * 1.3f)
 
 static bool limiter_active;
 static uint16_t *limiter_p = NULL;
+
+static bool accel_boost = false;
 
 static const float duty_min = 0.05f;
 static const float duty_max = 0.10f;
@@ -49,25 +52,25 @@ void parameters(T *a, T *b, T *c, T x1, T y1, T x2, T y2, T x3, T y3){
     *c = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom;
 }
 
-template<typename T>
-static T process_duty(T duty, int64_t t0){
+static float process_duty(float duty, int64_t t0){
     float x = std::abs(duty - duty_mid);
     float offset = 0.0f;
+    static int64_t last_t0 = 0;
     if (duty >= duty_mid)
     {
         static float last_offset = 0.0f;
-        static int64_t last_t0 = 0;
         float dt = (float)(t0 - last_t0) / 1000.0f;
 
-        offset = std::min(a * x*x + b * x + c, last_offset + (ACCEL_LIMIT * diff_max_mid * POINT_END) / dt);
-        
+        float accel_limit = (((accel_boost ? ACCEL_LIMIT_BOOST : ACCEL_LIMIT_DEFAULT) * diff_max_mid * POINT_END) / dt);
+        offset = std::min(a * x*x + b * x + c, last_offset + accel_limit);
+
         last_offset = offset;
-        last_t0 = t0;
     } else {
         offset = - x * brake_coeff;
     }
 
     duty = duty_mid + offset;
+    last_t0 = t0;
     return duty;
 }
 
@@ -95,7 +98,7 @@ extern "C" void app_main(void)
     st_cap.start();
     th_cap.start();
     ch3_cap.start();
-    // ch4_cap.start();
+    ch4_cap.start();
 
     gpio_num_t st_gpio = st_cap.get_gpio();
     gpio_num_t th_gpio = th_cap.get_gpio();
@@ -126,9 +129,11 @@ extern "C" void app_main(void)
         {
             limiter_active = ((float)pwm.duty / (float)pwm.period) > duty_mid;
         }
+        else if (pwm.gpio == ch4_gpio){
+            accel_boost = ((float)pwm.duty / (float)pwm.period > duty_mid);
+        }
 
-        if (limiter_active)
-            th = std::min(th, *limiter_p);
+        if (limiter_active) th = std::min(th, *limiter_p);
 
         static uint16_t last_th = 0x7fff;
         if (th != last_th){
