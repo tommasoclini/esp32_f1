@@ -1,4 +1,4 @@
 (sym_lib_table
   (version 7)
-  (lib (name "lib_progetto")(type "KiCad")(uri "${KIPRJMOD}/lib_progetto.kicad_sym")(options "")(descr ""))
+  (lib (name "connettori_progetto")(type "KiCad")(uri "${KIPRJMOD}/connettori_progetto.kicad_sym")(options "")(descr ""))
 )
