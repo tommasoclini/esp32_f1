@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/tommaso/git_repos/esp32_f1/esp32_f1_car/build/CMakeFiles/bootloader"
+		},
+		{
+			"file" : "/home/tommaso/git_repos/esp32_f1/esp32_f1_car/build/CMakeFiles/bootloader.rule"
+		},
+		{
+			"file" : "/home/tommaso/git_repos/esp32_f1/esp32_f1_car/build/CMakeFiles/bootloader-complete.rule"
+		},
+		{
+			"file" : "/home/tommaso/git_repos/esp32_f1/esp32_f1_car/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule"
+		},
+		{
+			"file" : "/home/tommaso/git_repos/esp32_f1/esp32_f1_car/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule"
+		},
+		{
+			"file" : "/home/tommaso/git_repos/esp32_f1/esp32_f1_car/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule"
+		},
+		{
+			"file" : "/home/tommaso/git_repos/esp32_f1/esp32_f1_car/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule"
+		},
+		{
+			"file" : "/home/tommaso/git_repos/esp32_f1/esp32_f1_car/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule"
+		},
+		{
+			"file" : "/home/tommaso/git_repos/esp32_f1/esp32_f1_car/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule"
+		},
+		{
+			"file" : "/home/tommaso/git_repos/esp32_f1/esp32_f1_car/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"bootloader"
+		],
+		"name" : "bootloader"
+	}
+}
