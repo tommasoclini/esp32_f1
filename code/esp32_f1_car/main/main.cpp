@@ -1,7 +1,6 @@
 #include <app_console.h>
 #include <app_car_servos.h>
 #include <pwm_capture.hpp>
-#include <app_car_params.h>
 
 #include <esp_log.h>
 
@@ -19,7 +18,7 @@ static const char *TAG = "main";
 #define ACCEL_LIMIT_BOOST       (ACCEL_LIMIT_DEFAULT * 1.3f)
 
 static bool limiter_active;
-static uint16_t *limiter_p = NULL;
+static const uint16_t limiter_val = 35000;
 
 static bool accel_boost = false;
 
@@ -32,6 +31,7 @@ static const float diff_max_mid_2 = diff_max_mid / 2.0;
 
 static float a, b, c;
 
+static const float accel_offset = 0.25f;
 static const float brake_coeff = 0.8f;
 
 pwm_capture::pwm_cap st_cap(GPIO_NUM_0, "gpio 0 st pwm cap");
@@ -44,50 +44,22 @@ static T map(T x, T l0, T h0, T l1, T h1){
     return (((h1 - l1) / (h0 - l0)) * (x - l0) + l1);
 }
 
-template<typename T>
-void parameters(T *a, T *b, T *c, T x1, T y1, T x2, T y2, T x3, T y3){
-    T denom = (x1 - x2) * (x1 - x3) * (x2 - x3);
-    *a = (x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2)) / denom;
-    *b = (x3*x3 * (y1 - y2) + x2*x2 * (y3 - y1) + x1*x1 * (y2 - y3)) / denom;
-    *c = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom;
-}
-
-static float process_duty(float duty, int64_t t0){
+static float process_duty(float duty){
     float x = std::abs(duty - duty_mid);
     float offset = 0.0f;
-    static int64_t last_t0 = 0;
-    static bool fw = false;
     if (duty >= duty_mid)
     {
-        static float last_offset = 0.0f;
-        if (!fw){
-            last_offset = 0.0f;
-            fw = true;
-        }
-
-        float dt = (float)(t0 - last_t0) / 1000.0f;
-
-        float max_accel_increase = (((accel_boost ? ACCEL_LIMIT_BOOST : ACCEL_LIMIT_DEFAULT) * diff_max_mid * POINT_END) / dt);
-        offset = std::min(a * x*x + b * x + c, last_offset + max_accel_increase);
-
-        last_offset = offset;
+        offset = x * accel_offset;
     } else {
-        if (fw) fw = false;
         offset = - x * brake_coeff;
     }
 
     duty = duty_mid + offset;
-    last_t0 = t0;
     return duty;
 }
 
 extern "C" void app_main(void)
 {
-    parameters(&a, &b, &c, 0.0f, 0.0f, diff_max_mid_2, diff_max_mid_2 * POINT_MIDDLE, diff_max_mid, diff_max_mid * POINT_END);
-    ESP_ERROR_CHECK(init_params());
-    
-    ESP_ERROR_CHECK(get_limiter_p(&limiter_p));
-
     ESP_ERROR_CHECK(initialize_console());
     ESP_ERROR_CHECK(start_console());
 
@@ -124,7 +96,7 @@ extern "C" void app_main(void)
         {
             float duty = std::clamp((float)pwm.duty / (float)pwm.period, duty_min, duty_max);
             
-            duty = process_duty(duty, pwm.t0);
+            duty = process_duty(duty);
 
             th = map(duty, duty_min, duty_max, (float)0x0, (float)0xffff);
         }
@@ -141,7 +113,7 @@ extern "C" void app_main(void)
             accel_boost = ((float)pwm.duty / (float)pwm.period > duty_mid);
         }
 
-        if (limiter_active) th = std::min(th, *limiter_p);
+        if (limiter_active) th = std::min(th, limiter_val);
 
         static uint16_t last_th = 0x7fff;
         if (th != last_th){
