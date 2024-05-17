@@ -77,12 +77,12 @@ extern "C" void app_main(void)
     st_cap.start();
     th_cap.start();
     ch3_cap.start();
-    ch4_cap.start();
+    // ch4_cap.start();
 
     gpio_num_t st_gpio = st_cap.get_gpio();
     gpio_num_t th_gpio = th_cap.get_gpio();
     gpio_num_t ch3_gpio = ch3_cap.get_gpio();
-    gpio_num_t ch4_gpio = ch4_cap.get_gpio();
+    // gpio_num_t ch4_gpio = ch4_cap.get_gpio();
 
     while (1)
     {
@@ -95,7 +95,7 @@ extern "C" void app_main(void)
         if (pwm.gpio == th_gpio)
         {
             float duty = std::clamp((float)pwm.duty / (float)pwm.period, duty_min, duty_max);
-            
+
             duty = process_duty(duty);
 
             th = map(duty, duty_min, duty_max, (float)0x0, (float)0xffff);
@@ -109,9 +109,9 @@ extern "C" void app_main(void)
         {
             limiter_active = ((float)pwm.duty / (float)pwm.period) > duty_mid;
         }
-        else if (pwm.gpio == ch4_gpio){
-            accel_boost = ((float)pwm.duty / (float)pwm.period > duty_mid);
-        }
+        /*else if (pwm.gpio == ch4_gpio){
+
+        }*/
 
         if (limiter_active) th = std::min(th, limiter_val);
 
