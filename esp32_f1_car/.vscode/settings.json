@@ -1,7 +1,0 @@
-{
-  "C_Cpp.intelliSenseEngine": "default",
-  "idf.adapterTargetName": "esp32c3",
-  "idf.openOcdConfigs": [
-    "board/esp32c3-bridge.cfg"
-  ]
-}
