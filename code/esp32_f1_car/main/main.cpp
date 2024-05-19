@@ -1,4 +1,4 @@
-#include <app_console.h>
+// #include <app_console.h>
 #include <app_car_servos.h>
 #include <pwm_capture.hpp>
 
@@ -11,16 +11,14 @@
 
 static const char *TAG = "main";
 
-#define POINT_MIDDLE            0.2f
-#define POINT_END               0.3f
+#define POINT_MIDDLE 0.2f
+#define POINT_END 0.3f
 
-#define ACCEL_LIMIT_DEFAULT     0.35f
-#define ACCEL_LIMIT_BOOST       (ACCEL_LIMIT_DEFAULT * 1.3f)
+#define ACCEL_LIMIT_DEFAULT 0.35f
+#define ACCEL_LIMIT_BOOST (ACCEL_LIMIT_DEFAULT * 1.3f)
 
 static bool limiter_active;
 static const uint16_t limiter_val = 35000;
-
-static bool accel_boost = false;
 
 static const float duty_min = 0.05f;
 static const float duty_max = 0.10f;
@@ -39,19 +37,23 @@ pwm_capture::pwm_cap th_cap(GPIO_NUM_1, "gpio 1 th pwm cap");
 pwm_capture::pwm_cap ch3_cap(GPIO_NUM_2, "gpio 2 ch3 pwm cap");
 pwm_capture::pwm_cap ch4_cap(GPIO_NUM_3, "gpio 3 ch4 pwm cap");
 
-template<typename T>
-static T map(T x, T l0, T h0, T l1, T h1){
+template <typename T>
+static T map(T x, T l0, T h0, T l1, T h1)
+{
     return (((h1 - l1) / (h0 - l0)) * (x - l0) + l1);
 }
 
-static float process_duty(float duty){
+static float process_duty(float duty)
+{
     float x = std::abs(duty - duty_mid);
     float offset = 0.0f;
     if (duty >= duty_mid)
     {
         offset = x * accel_offset;
-    } else {
-        offset = - x * brake_coeff;
+    }
+    else
+    {
+        offset = -x * brake_coeff;
     }
 
     duty = duty_mid + offset;
@@ -60,8 +62,8 @@ static float process_duty(float duty){
 
 extern "C" void app_main(void)
 {
-    ESP_ERROR_CHECK(initialize_console());
-    ESP_ERROR_CHECK(start_console());
+    /*ESP_ERROR_CHECK(initialize_console());
+    ESP_ERROR_CHECK(start_console());*/
 
     ESP_ERROR_CHECK(init_servos());
 
@@ -113,14 +115,16 @@ extern "C" void app_main(void)
 
         }*/
 
-        if (limiter_active) th = std::min(th, limiter_val);
+        if (limiter_active)
+            th = std::min(th, limiter_val);
 
         static uint16_t last_th = 0x7fff;
-        if (th != last_th){
+        if (th != last_th)
+        {
             esc_motor_servo_write_u16(th);
             last_th = th;
         }
 
-        //ESP_LOGI(TAG, "gpio(%d), duty(%llu), period(%llu), t0(%llu) esc(%u)", pwm.gpio, pwm.duty, pwm.period, pwm.t0, th);
+        // ESP_LOGI(TAG, "gpio(%d), duty(%llu), period(%llu), t0(%llu) esc(%u)", pwm.gpio, pwm.duty, pwm.period, pwm.t0, th);
     }
 }
