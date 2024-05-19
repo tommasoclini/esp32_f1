@@ -11,12 +11,6 @@
 
 static const char *TAG = "main";
 
-#define POINT_MIDDLE 0.2f
-#define POINT_END 0.3f
-
-#define ACCEL_LIMIT_DEFAULT 0.35f
-#define ACCEL_LIMIT_BOOST (ACCEL_LIMIT_DEFAULT * 1.3f)
-
 static bool limiter_active;
 static const uint16_t limiter_val = 35000;
 
@@ -26,8 +20,6 @@ static const float duty_mid = (duty_min + duty_max) / 2.0f;
 
 static const float diff_max_mid = duty_max - duty_mid;
 static const float diff_max_mid_2 = diff_max_mid / 2.0;
-
-static float a, b, c;
 
 static const float accel_offset = 0.25f;
 static const float brake_coeff = 0.8f;

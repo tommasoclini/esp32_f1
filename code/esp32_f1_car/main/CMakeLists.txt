@@ -4,4 +4,5 @@ idf_component_register(
         REQUIRES
         #"app_console"
         "app_car_servos"
-        "pwm_capture")
+        #"pwm_capture"
+)
