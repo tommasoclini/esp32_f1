@@ -1,0 +1,5 @@
+dependencies:
+  pwm_capture:
+    #version: main
+    path: pwm_capture
+    git: https://github.com/Tizio1234/esp_pwm_capture.git
